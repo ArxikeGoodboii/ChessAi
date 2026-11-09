@@ -20,10 +20,23 @@ jobs:
           test -f orion-study-extension/content.js
           python -m json.tool orion-study-extension/manifest.json > /dev/null
 
+      - name: Download Stockfish lite single-threaded engine
+        run: |
+          npm pack stockfish@19.0.1 --pack-destination "$RUNNER_TEMP"
+          tar -tzf "$RUNNER_TEMP/stockfish-19.0.1.tgz" | grep -q 'package/bin/stockfish-19-lite-single.js'
+          tar -tzf "$RUNNER_TEMP/stockfish-19.0.1.tgz" | grep -q 'package/bin/stockfish-19-lite-single.wasm'
+          tar -xzf "$RUNNER_TEMP/stockfish-19.0.1.tgz" -C "$RUNNER_TEMP" \
+            package/bin/stockfish-19-lite-single.js \
+            package/bin/stockfish-19-lite-single.wasm \
+            package/Copying.txt
+          cp "$RUNNER_TEMP/package/bin/stockfish-19-lite-single.js" orion-study-extension/
+          cp "$RUNNER_TEMP/package/bin/stockfish-19-lite-single.wasm" orion-study-extension/
+          cp "$RUNNER_TEMP/package/Copying.txt" orion-study-extension/STOCKFISH-LICENSE.txt
+
       - name: Package extension
         run: |
           cd orion-study-extension
-          zip -r ../ChessAI-Study-Helper.zip manifest.json content.js README.md CHANGELOG.md
+          zip -r ../ChessAI-Study-Helper.zip manifest.json content.js README.md CHANGELOG.md stockfish-19-lite-single.js stockfish-19-lite-single.wasm STOCKFISH-LICENSE.txt
 
       - name: Upload installable ZIP
         uses: actions/upload-artifact@v4
