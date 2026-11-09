@@ -30,7 +30,7 @@
     <div class="body">
       <p class="hint">Reads the piece positions from the Chess.com board for study and review.</p>
       <div class="row"><button class="action" id="read">Read Chess.com board</button><span class="status" id="status">Waiting for a chessboard…</span></div>
-      <div class="meta"><div>**Your side:** <strong id="your-side">Not detected</strong></div><div>**Next to move:** <strong id="turn">Not detected</strong></div><div>**Move count:** <strong id="move-count">Not detected</strong></div></div>
+      <div class="meta"><div><b>Your side:</b> <strong id="your-side">Not detected</strong></div><div><b>Next to move:</b> <strong id="turn">Not detected</strong></div><div><b>Move count:</b> <strong id="move-count">Not detected</strong></div></div>
       <label>Move history</label><div class="movehistory" id="history">No move history detected yet.</div>
       <label for="fen">Detected FEN</label>
       <textarea id="fen" spellcheck="false">${START_FEN}</textarea>
