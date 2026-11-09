@@ -27,7 +27,9 @@
        }
        if(line.startsWith('bestmove ')){
          const uci=line.split(/\s+/)[1];
-         $('move').textContent=uci&&uci!=='(none)'?uci.slice(0,2)+' → '+uci.slice(2,4)+(uci.length>4?' = '+uci[4].toUpperCase():''):'No legal move found';
+         const from=uci&&uci!=='(none)'?uci.slice(0,2):'';
+         const piece=from?pieceAt(latestFen||$('fen').value.trim(),from):'';
+         $('move').textContent=uci&&uci!=='(none)'?(pieceName(piece)+' '+from+' → '+uci.slice(2,4)+(uci.length>4?' (promote to '+pieceName(uci[4])+')':'')):'No legal move found';
          say('Analysis complete.');busy=false;$('analyse').disabled=false;
        }
      };
@@ -41,6 +43,13 @@
    if(!worker){latestFen=fen;start();const wait=setInterval(()=>{if(ready){clearInterval(wait);run(fen)}},200);return}
    if(ready)run(fen);
  });
- function run(fen){if(busy)return;busy=true;$('analyse').disabled=true;$('move').textContent='Calculating…';$('detail').textContent='';say('Analysing position…');worker.postMessage('position fen '+fen);worker.postMessage('go depth 14')}
+ function pieceAt(fen,square){
+   const file='abcdefgh'.indexOf(square[0]), rank=Number(square[1]);
+   const rows=fen.split(/\\s+/)[0].split('/'); let col=0;
+   for(const ch of rows[8-rank]){if(/[1-8]/.test(ch))col+=Number(ch);else{if(col===file)return ch;col++;}}
+   return '';
+ }
+ function pieceName(ch){return ({p:'Pawn',n:'Knight',b:'Bishop',r:'Rook',q:'Queen',k:'King'})[ch.toLowerCase()]||'Piece';}
+ function run(fen){if(busy)return;latestFen=fen;busy=true;$('analyse').disabled=true;$('move').textContent='Calculating…';$('detail').textContent='';say('Analysing position…');worker.postMessage('position fen '+fen);worker.postMessage('go depth 14')}
 })();
 </script></body></html>
