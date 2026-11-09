@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "Sources/**"
+      - "BroadcastExtension/**"
       - "project.yml"
       - ".github/workflows/build-unsigned-ipa.yml"
 
