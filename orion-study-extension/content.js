@@ -80,7 +80,7 @@
     for (const el of boardHosts) {
       const values = [el.getAttribute("fen"), el.getAttribute("data-fen"), el.getAttribute("data-position"), el.fen, el.position];
       for (const value of values) {
-        if (typeof value === "string" && value.trim().split(/\\s+/).length >= 4) {
+        if (typeof value === "string" && value.trim().split(/\s+/).length >= 4) {
           fullFen = value.trim();
           break;
         }
@@ -106,12 +106,12 @@
       } catch {}
     }
     if (plyCount === null && moveText) {
-      const san = moveText.match(/(?:^|\\s)(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?|\\.{3})(?=\\s|$)/g);
+      const san = moveText.match(/(?:^|\s)(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?|\.{3})(?=\s|$)/g);
       if (san) plyCount = san.length;
     }
     let turn = "";
     if (fullFen) {
-      const fields = fullFen.split(/\\s+/);
+      const fields = fullFen.split(/\s+/);
       if (fields[1] === "w" || fields[1] === "b") turn = fields[1];
     }
     if (!turn && plyCount !== null) turn = plyCount % 2 === 0 ? "w" : "b";
