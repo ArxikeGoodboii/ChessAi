@@ -1,13 +1,15 @@
 ChessAi Orion Study Helper
 
-1. Open analysis.html in a browser tab (after publishing the repository as a static site).
-2. Copy a complete FEN position from Chess.com Analysis / game review.
-3. Paste it into the FEN box and tap Analyse position.
-4. Stockfish returns a best move in UCI notation (for example e2 → e4).
+SETUP
+1. In your GitHub repository, open Settings -> Pages.
+2. Under Build and deployment -> Source, select "GitHub Actions".
+3. Open Actions -> "Publish ChessAi Orion study page" -> Run workflow (choose chrome-extension).
+4. Wait for the workflow to finish, then open the Pages URL shown in the deployment.
+5. In Chess.com Analysis or a completed game's review, copy the FEN position and paste it into ChessAi. Tap Analyse position.
 
-Important:
-- This first working milestone is manual-FEN analysis. Automatic reading of the Chess.com mobile board is not implemented yet.
-- Stockfish is loaded from jsDelivr, so internet access is required.
-- This is for post-game review and study, not live rated-game assistance.
-- The Stockfish package is GPL-3.0. See https://github.com/nmrugg/stockfish.js and https://www.npmjs.com/package/stockfish.
-- Orion/iOS support for blob workers and third-party worker scripts can vary. Test in Orion; if blocked, the engine page will show an error rather than silently pretending to work.
+The page runs Stockfish 19 Lite single-threaded in a same-origin Web Worker. The workflow downloads the matching JavaScript and WebAssembly files from the stockfish 19.0.1 npm package during deployment.
+
+LIMITATIONS
+- First version uses manual FEN input. Automatic reading of the Chess.com mobile board is not implemented yet.
+- Use for post-game review and study, not live rated-game assistance.
+- Stockfish.js is GPL-3.0: https://github.com/nmrugg/stockfish.js
