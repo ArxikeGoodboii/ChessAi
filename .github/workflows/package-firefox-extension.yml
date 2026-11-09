@@ -1,0 +1,28 @@
+name: Package Firefox Extension
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - chrome-extension
+    paths:
+      - "ChromeExtension/**"
+      - ".github/workflows/package-firefox-extension.yml"
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create correctly structured ZIP
+        run: |
+          cd ChromeExtension
+          zip -r ../ChessAi-Firefox.zip . -x "*.txt"
+
+      - name: Upload extension ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChessAi-Firefox
+          path: ChessAi-Firefox.zip
