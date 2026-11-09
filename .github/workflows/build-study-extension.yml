@@ -36,7 +36,7 @@ jobs:
       - name: Package extension
         run: |
           cd orion-study-extension
-          zip -r ../ChessAI-Study-Helper.zip manifest.json content.js README.md CHANGELOG.md stockfish-19-lite-single.js stockfish-19-lite-single.wasm STOCKFISH-LICENSE.txt
+          zip -r ../ChessAI-Study-Helper.zip manifest.json content.js README.md CHANGELOG.md worker-probe.js stockfish-19-lite-single.js stockfish-19-lite-single.wasm STOCKFISH-LICENSE.txt
 
       - name: Upload installable ZIP
         uses: actions/upload-artifact@v4
