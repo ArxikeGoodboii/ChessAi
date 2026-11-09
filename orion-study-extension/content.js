@@ -30,11 +30,13 @@
     <div class="body">
       <p class="hint">Reads the piece positions from the Chess.com board for study and review.</p>
       <div class="row"><button class="action" id="read">Read Chess.com board</button><span class="status" id="status">Waiting for a chessboard…</span></div>
-      <label for="fen">Detected FEN (position only)</label>
+      <div class="meta"><div>**Your side:** <strong id="your-side">Not detected</strong></div><div>**Next to move:** <strong id="turn">Not detected</strong></div><div>**Move count:** <strong id="move-count">Not detected</strong></div></div>
+      <label>Move history</label><div class="movehistory" id="history">No move history detected yet.</div>
+      <label for="fen">Detected FEN</label>
       <textarea id="fen" spellcheck="false">${START_FEN}</textarea>
       <div class="row"><button class="action" id="show">Show FEN</button></div>
       <div class="board" id="board" aria-label="Chess position"></div>
-      <p class="foot">Automatic reading detects piece locations only. It does not determine whose turn it is, castling rights, or en-passant rights, and does not provide move recommendations.</p>
+      <p class="foot">Turn and history are read only when Chess.com exposes reliable game data. A full legal-position FEN is used when available; otherwise special rights are marked unknown. Engine suggestions are the next development step. Use for bots, puzzles and study—not live rated games.</p>
     </div>`;
   root.append(panel);
 
@@ -71,6 +73,49 @@
       square.textContent = pieces[piece] || "";
       board.append(square);
     });
+  }
+
+  function readGameMetadata(roots, boardHosts) {
+    let fullFen = "";
+    for (const el of boardHosts) {
+      const values = [el.getAttribute("fen"), el.getAttribute("data-fen"), el.getAttribute("data-position"), el.fen, el.position];
+      for (const value of values) {
+        if (typeof value === "string" && value.trim().split(/\\s+/).length >= 4) {
+          fullFen = value.trim();
+          break;
+        }
+      }
+      if (fullFen) break;
+    }
+    let moveText = "";
+    let plyCount = null;
+    const selectors = ["wc-simple-move-list", "wc-move-list", ".move-list", ".move-list-wrapper", "[data-cy='move-list']"];
+    for (const r of roots) {
+      for (const selector of selectors) {
+        try {
+          const el = r.querySelector(selector);
+          if (el && el.innerText && el.innerText.trim().length > moveText.length) moveText = el.innerText.trim();
+        } catch {}
+      }
+      try {
+        const nodes = r.querySelectorAll("[data-ply], .move-text-component, .node");
+        if (nodes.length) {
+          const usable = Array.from(nodes).filter(n => (n.innerText || n.textContent || "").trim());
+          if (usable.length) plyCount = usable.length;
+        }
+      } catch {}
+    }
+    if (plyCount === null && moveText) {
+      const san = moveText.match(/(?:^|\\s)(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?|\\.{3})(?=\\s|$)/g);
+      if (san) plyCount = san.length;
+    }
+    let turn = "";
+    if (fullFen) {
+      const fields = fullFen.split(/\\s+/);
+      if (fields[1] === "w" || fields[1] === "b") turn = fields[1];
+    }
+    if (!turn && plyCount !== null) turn = plyCount % 2 === 0 ? "w" : "b";
+    return { fullFen, moveText, plyCount, turn };
   }
 
   function readChessComBoard() {
@@ -119,7 +164,10 @@
     }
     const board = boardHosts.find(el => el.classList.contains("flipped"));
     const side = board ? "Black" : "White";
-    return { fen: rows.join("/") + " w - - 0 1", side, count: found.size };
+    const meta = readGameMetadata(roots, boardHosts);
+    const placement = rows.join("/");
+    const fen = meta.fullFen || (placement + " " + (meta.turn || "w") + " - - 0 1");
+    return { fen, side, count: found.size, turn: meta.turn, plyCount: meta.plyCount, moveText: meta.moveText, fullFen: !!meta.fullFen };
   }
 
   function syncBoard() {
@@ -127,7 +175,11 @@
       const result = readChessComBoard();
       $("#fen").value = result.fen;
       renderFen(result.fen);
-      $("#status").textContent = "Detected " + result.count + " pieces · you appear to be " + result.side + ".";
+      $("#status").textContent = "Detected " + result.count + " pieces.";
+      $("#your-side").textContent = result.side + " (board orientation)";
+      $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — Chess.com did not expose turn data";
+      $("#move-count").textContent = result.plyCount === null ? "Unknown" : String(result.plyCount) + " half-moves";
+      $("#history").textContent = result.moveText || "Move list not found in the page. Turn may be unavailable.";
     } catch (error) {
       $("#status").textContent = error.message;
     }
