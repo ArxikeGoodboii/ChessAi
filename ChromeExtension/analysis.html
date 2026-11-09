@@ -10,7 +10,7 @@
 (() => {
  const $=id=>document.getElementById(id);
  const engineUrl='./stockfish-19-lite-single.js';
- let worker=null, ready=false, busy=false, latestFen='';
+ let worker=null, ready=false, busy=false, latestFen='', pendingFen=new URLSearchParams(location.search).get('fen');
  function say(s){$('status').textContent=s}
  function start(){
    if(worker)return;
@@ -19,7 +19,7 @@
      worker.onmessage=e=>{
        const line=String(e.data||'');
        if(line==='uciok'){worker.postMessage('isready');return}
-       if(line==='readyok'){ready=true;say('Stockfish ready.');$('analyse').disabled=false;return}
+       if(line==='readyok'){ready=true;say('Stockfish ready.');$('analyse').disabled=false;if(pendingFen){$('fen').value=pendingFen;const f=pendingFen;pendingFen='';run(f);}return}
        if(line.startsWith('info ')){
          const m=line.match(/\bscore (cp|mate) (-?\d+)/);
          const d=line.match(/\bdepth (\d+)/);
@@ -45,7 +45,7 @@
  });
  function pieceAt(fen,square){
    const file='abcdefgh'.indexOf(square[0]), rank=Number(square[1]);
-   const rows=fen.split(/\\s+/)[0].split('/'); let col=0;
+   const rows=fen.split(/\s+/)[0].split('/'); let col=0;
    for(const ch of rows[8-rank]){if(/[1-8]/.test(ch))col+=Number(ch);else{if(col===file)return ch;col++;}}
    return '';
  }
