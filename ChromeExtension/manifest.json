@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
   "name": "ChessAi Study Helper",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Stockfish study helper for Chess.com analysis, computer bots, and lessons.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "chessai-study-helper@arxikegoodboii"
+    }
+  },
   "content_scripts": [
     {
       "matches": [
