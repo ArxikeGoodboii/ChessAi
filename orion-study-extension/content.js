@@ -217,10 +217,23 @@
       ((typeof chrome !== "undefined" && chrome.runtime) ? chrome.runtime : null);
     if (!runtime || !runtime.getURL) throw new Error("Orion did not expose the extension worker URL API.");
     const url = runtime.getURL("stockfish-19-lite-single.js");
-    engineWorker = new Worker(url);
+    try {
+      engineWorker = new Worker(url);
+    } catch (error) {
+      throw new Error("Worker constructor blocked: " + (error && error.message ? error.message : String(error)) + " · URL: " + url);
+    }
+    let gotUciOk = false;
+    const startupTimer = setTimeout(() => {
+      if (!gotUciOk) {
+        analysisPending = false;
+        setRecommendation("Engine startup timed out", "The worker loaded but did not answer UCI. Check the bundled JS/WASM pair and Orion worker support. URL: " + url);
+      }
+    }, 10000);
     engineWorker.onmessage = event => {
       const line = String(event.data || "");
       if (line === "uciok") {
+        gotUciOk = true;
+        clearTimeout(startupTimer);
         engineWorker.postMessage("isready");
       } else if (line === "readyok") {
         engineReady = true;
@@ -243,9 +256,15 @@
         if (depth) $("#status").textContent = "Analyzing study position · depth " + depth[1] + "…";
       }
     };
-    engineWorker.onerror = () => {
+    engineWorker.onerror = event => {
       analysisPending = false;
-      setRecommendation("Engine failed to load", "Orion could not start the bundled Stockfish worker. Check that both Stockfish files are installed.");
+      const reason = event && event.message ? event.message : "No browser error detail was provided.";
+      const location = event && event.filename ? " · " + event.filename + (event.lineno ? ":" + event.lineno : "") : "";
+      setRecommendation("Engine failed to start", reason + location + " · Worker URL: " + url);
+    };
+    engineWorker.onmessageerror = () => {
+      analysisPending = false;
+      setRecommendation("Engine message error", "Orion could not decode a message from the Stockfish worker. Worker URL: " + url);
     };
     engineWorker.postMessage("uci");
   }
