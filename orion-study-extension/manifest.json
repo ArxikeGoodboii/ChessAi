@@ -21,5 +21,16 @@
       "id": "chessai-study-helper@example.org",
       "strict_min_version": "109.0"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "stockfish-19-lite-single.js",
+        "stockfish-19-lite-single.wasm"
+      ],
+      "matches": [
+        "https://www.chess.com/*"
+      ]
+    }
+  ]
 }
