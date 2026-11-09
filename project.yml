@@ -9,13 +9,31 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+    dependencies:
+      - target: ChessAiBroadcastUpload
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.arxike.chessai
         PRODUCT_NAME: ChessAi
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_ENTITLEMENTS: Sources/ChessAi.entitlements
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         GENERATE_INFOPLIST_FILE: YES
+  ChessAiBroadcastUpload:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: BroadcastExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.arxike.chessai.broadcast-upload
+        PRODUCT_NAME: ChessAiBroadcastUpload
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_ENTITLEMENTS: BroadcastExtension/BroadcastExtension.entitlements
+        INFOPLIST_FILE: BroadcastExtension/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
