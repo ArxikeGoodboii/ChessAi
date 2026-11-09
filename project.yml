@@ -35,7 +35,5 @@ targets:
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_ENTITLEMENTS: BroadcastExtension/BroadcastExtension.entitlements
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier: com.apple.broadcast-services-upload
-        INFOPLIST_KEY_NSExtension_NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).SampleHandler"
-        INFOPLIST_KEY_RPBroadcastProcessMode: RPBroadcastProcessModeSampleBuffer
+        INFOPLIST_FILE: BroadcastExtension/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
