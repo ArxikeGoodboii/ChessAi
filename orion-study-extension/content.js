@@ -188,7 +188,7 @@
   }
 
   function pieceAt(fen, square) {
-    const [placement] = fen.split(/\\s+/);
+    const [placement] = fen.split(/\s+/);
     const file = square.charCodeAt(0) - 97;
     const rank = Number(square[1]);
     const rows = placement.split("/");
@@ -228,7 +228,7 @@
         if (analysisPending) runAnalysis();
       } else if (line.startsWith("bestmove ")) {
         analysisPending = false;
-        const move = line.split(/\\s+/)[1];
+        const move = line.split(/\s+/)[1];
         if (!move || move === "(none)" || move === "0000") {
           setRecommendation("No legal move", "The engine found no legal move in this position.");
           return;
@@ -252,7 +252,7 @@
 
   function runAnalysis() {
     const fen = $("#fen").value.trim();
-    const fields = fen.split(/\\s+/);
+    const fields = fen.split(/\s+/);
     if (fields.length !== 6 || !/^[wb]$/.test(fields[1])) {
       setRecommendation("Complete FEN required", "A full six-field FEN is needed so the engine knows the turn and special chess rights. Position-only FEN is not enough.");
       return;
