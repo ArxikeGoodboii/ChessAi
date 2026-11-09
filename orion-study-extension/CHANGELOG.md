@@ -31,3 +31,9 @@
 - Bundles a small JavaScript chess rules library and a lightweight local search engine.
 - Adds legal-move suggestions with SAN and a basic position evaluation.
 - Analysis is depth-limited and runs on the page thread; it is intended for puzzles and post-game study.
+
+
+## 1.4.1
+- Fixed whitespace parsing of FEN fields so valid six-field positions are accepted.
+- Corrected the reported completed search depth.
+- Clarified the panel's analysis description.
