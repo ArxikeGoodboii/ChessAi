@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "ChessAi Study Helper",
+  "version": "1.0.0",
+  "description": "Board reader for Chess.com analysis pages.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://www.chess.com/*", "https://chess.com/*"],
+  "action": {"default_title":"ChessAi Study Helper","default_popup":"popup.html"},
+  "content_scripts": [{"matches":["https://www.chess.com/analysis*","https://chess.com/analysis*"],"js":["content.js"],"run_at":"document_idle"}]
+}
