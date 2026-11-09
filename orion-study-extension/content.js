@@ -171,10 +171,8 @@
     return { fen, side, count: found.size, turn: meta.turn, plyCount: meta.plyCount, moveText: meta.moveText, fullFen: !!meta.fullFen };
   }
 
-  let engineWorker = null;
-  let engineReady = false;
   let analysisPending = false;
-  let lastBestMove = "";
+  let analysisRun = 0;
 
   function setRecommendation(title, detail, best = "") {
     $("#recommend").innerHTML = "<strong></strong><div class='best'></div><div class='detail'></div>";
@@ -183,12 +181,8 @@
     $("#recommend .detail").textContent = detail;
   }
 
-  function squareName(file, rank) {
-    return file + rank;
-  }
-
   function pieceAt(fen, square) {
-    const [placement] = fen.split(/\s+/);
+    const [placement] = fen.split(/\\s+/);
     const file = square.charCodeAt(0) - 97;
     const rank = Number(square[1]);
     const rows = placement.split("/");
@@ -211,119 +205,41 @@
     return names[(symbol || "").toLowerCase()] || "Piece";
   }
 
-  function ensureEngine() {
-    if (engineWorker) return;
-    const runtime = (typeof browser !== "undefined" && browser.runtime) ? browser.runtime :
-      ((typeof chrome !== "undefined" && chrome.runtime) ? chrome.runtime : null);
-    if (!runtime || !runtime.getURL) throw new Error("Orion did not expose the extension worker URL API.");
-    const url = runtime.getURL("stockfish-19-lite-single.js");
-    const probeUrl = runtime.getURL("worker-probe.js");
-
-    let probe;
-    try {
-      probe = new Worker(probeUrl);
-    } catch (error) {
-      throw new Error("Orion could not create even a basic extension worker: " + (error && error.message ? error.message : String(error)));
-    }
-
-    let probeFinished = false;
-    const probeTimer = setTimeout(() => {
-      if (probeFinished) return;
-      probeFinished = true;
-      probe.terminate();
-      analysisPending = false;
-      setRecommendation("Orion worker test timed out", "A tiny test worker did not answer. This points to Orion's extension-worker support or extension resource loading, not the Stockfish engine.");
-    }, 4000);
-
-    probe.onmessage = event => {
-      if (probeFinished || event.data !== "chessai-worker-probe-ok") return;
-      probeFinished = true;
-      clearTimeout(probeTimer);
-      probe.terminate();
-      try { startStockfishWorker(url); } catch (error) { setRecommendation("Stockfish worker could not start", error.message); }
-    };
-    probe.onerror = event => {
-      if (probeFinished) return;
-      probeFinished = true;
-      clearTimeout(probeTimer);
-      probe.terminate();
-      analysisPending = false;
-      const reason = event && event.message ? event.message : "No browser error detail was provided.";
-      setRecommendation("Orion worker test failed", reason + " · Test URL: " + probeUrl);
-    };
-    probe.postMessage("ping");
-  }
-
-  function startStockfishWorker(url) {
-    try {
-      engineWorker = new Worker(url);
-    } catch (error) {
-      throw new Error("Stockfish worker constructor blocked: " + (error && error.message ? error.message : String(error)) + " · URL: " + url);
-    }
-    let gotUciOk = false;
-    const startupTimer = setTimeout(() => {
-      if (!gotUciOk) {
-        analysisPending = false;
-        setRecommendation("Stockfish did not answer UCI", "The basic worker test passed, so Orion can run extension workers. Stockfish itself failed to initialize; the likely issue is its WASM loading or worker script compatibility. URL: " + url);
-      }
-    }, 15000);
-    engineWorker.onmessage = event => {
-      const line = String(event.data || "");
-      if (line === "uciok") {
-        gotUciOk = true;
-        clearTimeout(startupTimer);
-        engineWorker.postMessage("isready");
-      } else if (line === "readyok") {
-        engineReady = true;
-        $("#status").textContent = "Stockfish ready.";
-        if (analysisPending) runAnalysis();
-      } else if (line.startsWith("bestmove ")) {
-        analysisPending = false;
-        const move = line.split(/\s+/)[1];
-        if (!move || move === "(none)" || move === "0000") {
-          setRecommendation("No legal move", "The engine found no legal move in this position.");
-          return;
-        }
-        lastBestMove = move;
-        const from = move.slice(0,2), to = move.slice(2,4);
-        const symbol = pieceAt($("#fen").value.trim(), from);
-        const promotion = move[4] ? " · promotes to " + pieceLabel(move[4]) : "";
-        setRecommendation("Stockfish top move", "From " + from + " to " + to + promotion + ". Engine line: " + move, pieceLabel(symbol) + " " + from + " → " + to);
-      } else if (line.startsWith("info depth")) {
-        const depth = line.match(/\\\\bdepth (\\\\d+)/);
-        if (depth) $("#status").textContent = "Analyzing study position · depth " + depth[1] + "…";
-      }
-    };
-    engineWorker.onerror = event => {
-      analysisPending = false;
-      const reason = event && event.message ? event.message : "No browser error detail was provided.";
-      const location = event && event.filename ? " · " + event.filename + (event.lineno ? ":" + event.lineno : "") : "";
-      setRecommendation("Stockfish worker error", reason + location + " · Worker URL: " + url);
-    };
-    engineWorker.onmessageerror = () => {
-      analysisPending = false;
-      setRecommendation("Stockfish message error", "Orion could not decode a message from the Stockfish worker. Worker URL: " + url);
-    };
-    engineWorker.postMessage("uci");
-  }
-
-  function runAnalysis() {
+  async function runAnalysis() {
     const fen = $("#fen").value.trim();
-    const fields = fen.split(/\s+/);
+    const fields = fen.split(/\\s+/);
     if (fields.length !== 6 || !/^[wb]$/.test(fields[1])) {
-      setRecommendation("Complete FEN required", "A full six-field FEN is needed so the engine knows the turn and special chess rights. Position-only FEN is not enough.");
+      setRecommendation("Complete FEN required", "Enter a valid six-field FEN, including side to move, castling rights and en-passant square.");
       return;
     }
+    if (!globalThis.ChessAIEngine || typeof globalThis.ChessAIEngine.analyzeFen !== "function") {
+      setRecommendation("Analysis engine missing", "The worker-free engine bundle was not loaded. Reinstall the newest ChessAI build.");
+      return;
+    }
+    const runId = ++analysisRun;
+    analysisPending = true;
+    $("#analyze").disabled = true;
+    $("#status").textContent = "Preparing local JavaScript analysis…";
+    setRecommendation("Analyzing study position…", "This runs directly in the page without Web Workers. The page may pause briefly while it searches.");
     try {
-      ensureEngine();
-      analysisPending = true;
-      setRecommendation("Analyzing…", "Stockfish is calculating a move for this study position.");
-      if (!engineReady) return;
-      engineWorker.postMessage("stop");
-      engineWorker.postMessage("position fen " + fen);
-      engineWorker.postMessage("go depth 13");
+      const result = await globalThis.ChessAIEngine.analyzeFen(fen, progress => {
+        if (runId !== analysisRun) return;
+        $("#status").textContent = "Searching · depth " + progress.depth + " · " + progress.nodes.toLocaleString() + " nodes";
+      });
+      if (runId !== analysisRun) return;
+      const symbol = pieceAt(fen, result.from);
+      const promo = result.promotion ? " · promotes to " + pieceLabel(result.promotion) : "";
+      const score = (result.score / 100).toFixed(2);
+      const signedScore = result.score > 0 ? "+" + score : score;
+      setRecommendation("Suggested study move", "Move: " + result.san + promo + " · Evaluation: " + signedScore + " (from your side to move). This is a lightweight depth-limited search, not full Stockfish.", pieceLabel(symbol) + " " + result.from + " → " + result.to);
+      $("#status").textContent = "Finished · " + result.nodes.toLocaleString() + " nodes";
     } catch (error) {
-      setRecommendation("Engine unavailable", error.message);
+      if (runId === analysisRun) setRecommendation("Could not analyze position", error && error.message ? error.message : String(error));
+    } finally {
+      if (runId === analysisRun) {
+        analysisPending = false;
+        $("#analyze").disabled = false;
+      }
     }
   }
 
