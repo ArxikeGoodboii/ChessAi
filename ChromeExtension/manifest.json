@@ -1,13 +1,19 @@
 {
   "manifest_version": 3,
   "name": "ChessAi Study Helper",
-  "version": "1.2.0",
-  "description": "Reads chess positions on Chess.com analysis pages.",
+  "version": "1.2.1",
+  "description": "Stockfish study helper for Chess.com analysis, computer bots, and lessons.",
   "content_scripts": [
     {
       "matches": [
         "https://www.chess.com/analysis*",
-        "https://chess.com/analysis*"
+        "https://chess.com/analysis*",
+        "https://www.chess.com/play/computer*",
+        "https://chess.com/play/computer*",
+        "https://www.chess.com/lessons*",
+        "https://chess.com/lessons*",
+        "https://www.chess.com/coach*",
+        "https://chess.com/coach*"
       ],
       "js": [
         "content.js"
