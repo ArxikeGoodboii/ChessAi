@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ChessAI Study Helper",
-  "version": "1.1.0",
-  "description": "A lightweight chess position viewer for post-game review and practice.",
+  "version": "1.2.0",
+  "description": "A chess study helper with board, turn and move-history detection for practice and review.",
   "permissions": [],
   "host_permissions": [],
   "content_scripts": [
