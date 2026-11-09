@@ -18,25 +18,20 @@ jobs:
         run: |
           test -f orion-study-extension/manifest.json
           test -f orion-study-extension/content.js
+          test -f orion-study-extension/engine.js
           python -m json.tool orion-study-extension/manifest.json > /dev/null
 
-      - name: Download Stockfish lite single-threaded engine
+      - name: Build worker-free chess engine bundle
         run: |
-          npm pack stockfish@19.0.1 --pack-destination "$RUNNER_TEMP"
-          tar -tzf "$RUNNER_TEMP/stockfish-19.0.1.tgz" | grep -q 'package/bin/stockfish-19-lite-single.js'
-          tar -tzf "$RUNNER_TEMP/stockfish-19.0.1.tgz" | grep -q 'package/bin/stockfish-19-lite-single.wasm'
-          tar -xzf "$RUNNER_TEMP/stockfish-19.0.1.tgz" -C "$RUNNER_TEMP" \
-            package/bin/stockfish-19-lite-single.js \
-            package/bin/stockfish-19-lite-single.wasm \
-            package/Copying.txt
-          cp "$RUNNER_TEMP/package/bin/stockfish-19-lite-single.js" orion-study-extension/
-          cp "$RUNNER_TEMP/package/bin/stockfish-19-lite-single.wasm" orion-study-extension/
-          cp "$RUNNER_TEMP/package/Copying.txt" orion-study-extension/STOCKFISH-LICENSE.txt
+          npm install --no-save chess.js@1.4.0 esbuild@0.25.0
+          npx esbuild orion-study-extension/engine.js --bundle --format=iife --global-name=ChessAIEngine --outfile=orion-study-extension/engine.bundle.js
+          cp node_modules/chess.js/LICENSE orion-study-extension/CHESSJS-LICENSE.txt
+          test -s orion-study-extension/engine.bundle.js
 
       - name: Package extension
         run: |
           cd orion-study-extension
-          zip -r ../ChessAI-Study-Helper.zip manifest.json content.js README.md CHANGELOG.md worker-probe.js stockfish-19-lite-single.js stockfish-19-lite-single.wasm STOCKFISH-LICENSE.txt
+          zip -r ../ChessAI-Study-Helper.zip manifest.json content.js engine.js engine.bundle.js README.md CHANGELOG.md CHESSJS-LICENSE.txt
 
       - name: Upload installable ZIP
         uses: actions/upload-artifact@v4
