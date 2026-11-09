@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ChessAi Study</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0c141b;color:#edf4f5;font:16px -apple-system,BlinkMacSystemFont,sans-serif;padding:22px}.wrap{max-width:680px;margin:auto}h1{font-size:27px;color:#79e2d3}p{color:#b9c7cb;line-height:1.5}.card{background:#15232c;border:1px solid #31515a;border-radius:14px;padding:16px;margin:16px 0}label{display:block;font-weight:600;margin-bottom:8px}textarea,input,button{font:inherit;border-radius:9px}textarea,input{width:100%;background:#0c171e;color:#fff;border:1px solid #49616a;padding:12px}textarea{min-height:86px;resize:vertical}button{border:0;background:#58cbbb;color:#06201d;font-weight:700;padding:12px 18px;margin-top:12px;width:100%}button:disabled{opacity:.5}#status{color:#8edfd3}#move{font-size:24px;font-weight:700;color:#8ee7d9}small{color:#9aabb2}code{overflow-wrap:anywhere}
+</style></head><body><main class="wrap"><h1>♞ ChessAi Study</h1><p>Analyse a position with Stockfish. Use this for reviewing games and studying positions.</p>
+<section class="card"><label for="fen">Chess position (FEN)</label><textarea id="fen" spellcheck="false">rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</textarea><small>Paste a complete FEN from Chess.com Analysis → Share/Export → FEN.</small><button id="analyse">Analyse position</button></section>
+<section class="card"><div id="status">Engine not started yet.</div><p id="move">No recommendation yet</p><p id="detail"></p></section>
+<p><small>Stockfish is loaded from jsDelivr. Internet access is required. Engine source: Stockfish.js, GPL-3.0.</small></p></main>
+<script>
+(() => {
+ const $=id=>document.getElementById(id);
+ const engineUrl='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/stockfish-19-lite-single.js';
+ let worker=null, ready=false, busy=false, latestFen='';
+ function say(s){$('status').textContent=s}
+ function start(){
+   if(worker)return;
+   try{
+     const source="importScripts('"+engineUrl+"');";
+     const blob=new Blob([source],{type:'text/javascript'});
+     worker=new Worker(URL.createObjectURL(blob));
+     worker.onmessage=e=>{
+       const line=String(e.data||'');
+       if(line==='uciok'){worker.postMessage('isready');return}
+       if(line==='readyok'){ready=true;say('Stockfish ready.');$('analyse').disabled=false;return}
+       if(line.startsWith('info ')){
+         const m=line.match(/\bscore (cp|mate) (-?\d+)/);
+         const d=line.match(/\bdepth (\d+)/);
+         if(m)$('detail').textContent=(m[1]==='mate'?'Mate in '+m[2]:(Number(m[2])/100).toFixed(2)+' evaluation')+(d?' · depth '+d[1]:'');
+       }
+       if(line.startsWith('bestmove ')){
+         const uci=line.split(/\s+/)[1];
+         $('move').textContent=uci&&uci!=='(none)'?uci.slice(0,2)+' → '+uci.slice(2,4)+(uci.length>4?' = '+uci[4].toUpperCase():''):'No legal move found';
+         say('Analysis complete.');busy=false;$('analyse').disabled=false;
+       }
+     };
+     worker.onerror=()=>{say('Engine failed to load. Check your connection or try another browser tab.');$('analyse').disabled=false;busy=false};
+     $('analyse').disabled=true;say('Loading Stockfish…');worker.postMessage('uci');
+   }catch(e){say('Could not start Stockfish: '+e.message)}
+ }
+ $('analyse').addEventListener('click',()=>{
+   const fen=$('fen').value.trim();
+   if(fen.split(/\s+/).length!==6){say('Please enter a complete six-part FEN.');return}
+   if(!worker){latestFen=fen;start();const wait=setInterval(()=>{if(ready){clearInterval(wait);run(fen)}},200);return}
+   if(ready)run(fen);
+ });
+ function run(fen){if(busy)return;busy=true;$('analyse').disabled=true;$('move').textContent='Calculating…';$('detail').textContent='';say('Analysing position…');worker.postMessage('position fen '+fen);worker.postMessage('go depth 14')}
+})();
+</script></body></html>
