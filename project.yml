@@ -1,0 +1,21 @@
+name: ChessAi
+options:
+  bundleIdPrefix: com.arxike
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  ChessAi:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.arxike.chessai
+        PRODUCT_NAME: ChessAi
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        GENERATE_INFOPLIST_FILE: YES
