@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChessAI Study Helper",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "A chess study helper with board, turn and move-history detection for practice and review.",
   "permissions": [],
   "host_permissions": [],
@@ -26,7 +26,8 @@
     {
       "resources": [
         "stockfish-19-lite-single.js",
-        "stockfish-19-lite-single.wasm"
+        "stockfish-19-lite-single.wasm",
+        "worker-probe.js"
       ],
       "matches": [
         "https://www.chess.com/*"
