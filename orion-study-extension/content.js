@@ -92,7 +92,7 @@
     const found = new Map();
     for (const el of new Set(candidates)) {
       const classes = typeof el.className === "string" ? el.className : el.getAttribute("class") || "";
-      const tokens = classes.split(/\\s+/);
+      const tokens = el.classList ? Array.from(el.classList) : classes.trim().split(/\s+/);
       const pieceMatch = tokens.find(t => /^[wb][kqrbnp]$/i.test(t));
       const squareMatch = tokens.find(t => /^square-[1-8][1-8]$/i.test(t));
       if (!pieceMatch || !squareMatch) continue;
