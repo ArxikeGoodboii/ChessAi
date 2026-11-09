@@ -131,6 +131,11 @@ small{color:#9aabb2;font-size:10px;line-height:1.4;display:block}
           if (move && move !== "(none)") tellParent("chessai-bestmove", "", move);
           busy = false;
           $("analyse").disabled = false;
+          if (queuedFen) {
+            const next = queuedFen;
+            queuedFen = "";
+            run(next);
+          }
         }
       };
       worker.onerror = () => {
@@ -147,7 +152,8 @@ small{color:#9aabb2;font-size:10px;line-height:1.4;display:block}
   }
 
   function run(fen) {
-    if (!worker || !ready || busy) return;
+    if (!worker || !ready) return;
+    if (busy) { queuedFen = fen; worker.postMessage("stop"); return; }
     if (fen.split(/\s+/).length !== 6) {
       status("Enter a valid six-part FEN position.");
       return;
