@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ChessAI Study Helper",
-  "version": "1.3.2",
-  "description": "A chess study helper with board, turn and move-history detection for practice and review.",
+  "version": "1.4.0",
+  "description": "A worker-free Chess.com study helper with board detection and lightweight local move analysis.",
   "permissions": [],
   "host_permissions": [],
   "content_scripts": [
@@ -11,6 +11,7 @@
         "https://www.chess.com/*"
       ],
       "js": [
+        "engine.bundle.js",
         "content.js"
       ],
       "run_at": "document_idle"
@@ -21,17 +22,5 @@
       "id": "chessai-study-helper@example.org",
       "strict_min_version": "109.0"
     }
-  },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "stockfish-19-lite-single.js",
-        "stockfish-19-lite-single.wasm",
-        "worker-probe.js"
-      ],
-      "matches": [
-        "https://www.chess.com/*"
-      ]
-    }
-  ]
+  }
 }
