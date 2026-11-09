@@ -88,6 +88,7 @@ export async function analyzeFen(fen, onProgress = () => {}) {
     if (depthBest) {
       bestMove = depthBest;
       bestScore = depthScore;
+      completedDepth = depth;
     }
     totalNodes += state.nodes;
     onProgress({ depth, nodes: totalNodes });
