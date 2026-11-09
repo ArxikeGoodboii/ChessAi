@@ -182,7 +182,7 @@
   }
 
   function pieceAt(fen, square) {
-    const [placement] = fen.split(/\\s+/);
+    const [placement] = fen.split(/\s+/);
     const file = square.charCodeAt(0) - 97;
     const rank = Number(square[1]);
     const rows = placement.split("/");
@@ -207,7 +207,7 @@
 
   async function runAnalysis() {
     const fen = $("#fen").value.trim();
-    const fields = fen.split(/\\s+/);
+    const fields = fen.split(/\s+/);
     if (fields.length !== 6 || !/^[wb]$/.test(fields[1])) {
       setRecommendation("Complete FEN required", "Enter a valid six-field FEN, including side to move, castling rights and en-passant square.");
       return;
