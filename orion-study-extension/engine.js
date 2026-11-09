@@ -65,7 +65,8 @@ export async function analyzeFen(fen, onProgress = () => {}) {
   if (!legal.length) throw new Error(chess.isCheckmate() ? "This position is checkmate." : "No legal moves in this position.");
   let bestMove = null;
   let bestScore = -Infinity;
-  let totalNodes = 0;\n  let completedDepth = 0;
+  let totalNodes = 0;
+  let completedDepth = 0;
   for (let depth = 1; depth <= 3; depth++) {
     await new Promise(resolve => setTimeout(resolve, 20));
     const state = { nodes: 0 };
