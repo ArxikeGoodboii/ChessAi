@@ -37,7 +37,7 @@
       <div class="row"><button class="action" id="show">Show FEN</button><button class="action" id="analyze">Analyze study position</button></div>
       <div class="recommend" id="recommend"><strong>Best move</strong><div class="detail">Load a complete six-field FEN from a puzzle or completed game, then analyze.</div></div>
       <div class="board" id="board" aria-label="Chess position"></div>
-      <p class="foot">Turn and history are read only when Chess.com exposes reliable game data. A full legal-position FEN is used when available; otherwise special rights are marked unknown. Engine suggestions are the next development step. Use for bots, puzzles and study—not live rated games.</p>
+      <p class="foot">Turn and history are read only when Chess.com exposes reliable game data. A full legal-position FEN is used when available; otherwise special rights are marked unknown. Suggestions use a lightweight local search. Use for bots, puzzles and study—not live rated games.</p>
     </div>`;
   root.append(panel);
 
