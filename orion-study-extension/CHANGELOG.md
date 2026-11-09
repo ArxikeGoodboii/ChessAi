@@ -24,3 +24,10 @@
 - Added a study-position analysis button that displays the engine's best move in UCI coordinates and identifies the moving piece.
 - Requires a complete six-field FEN; does not guess missing castling or en-passant rights.
 - Stockfish is distributed under GPL-3.0; see STOCKFISH-LICENSE.txt in the package.
+
+
+## 1.4.0
+- Removed the Web Worker and WASM engine startup path for Orion compatibility.
+- Bundles a small JavaScript chess rules library and a lightweight local search engine.
+- Adds legal-move suggestions with SAN and a basic position evaluation.
+- Analysis is depth-limited and runs on the page thread; it is intended for puzzles and post-game study.
