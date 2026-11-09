@@ -1,24 +1,27 @@
 # ChessAI Study Helper (Orion / Firefox)
 
-A small Manifest V3 browser extension for Chess.com post-game review and practice.
+A lightweight Chess.com study extension for bot games, puzzles and post-game review.
 
 ## Current features
-- Adds a floating **ChessAI Study** button on Chess.com.
-- Opens a compact study panel.
-- Accepts a FEN position and renders it as a chessboard.
-- Validates the eight FEN board ranks and piece symbols.
+- Floating ChessAI study panel.
+- Reads piece positions from Chess.com board elements.
+- Displays a board preview and editable FEN.
+- Detects board orientation (the side you appear to be playing).
+- Best-effort turn and move-list detection when Chess.com exposes game data.
+- Shows unknown rather than guessing when turn/history data cannot be read.
 
-## Not included yet
-- No Stockfish engine.
-- No automatic reading of the Chess.com board.
-- No move recommendations.
-- It is intended for review and practice, not live competitive-game assistance.
+## In development
+- Reliable full-game reconstruction, including castling and en-passant rights.
+- Bundled chess rules and Stockfish analysis.
+- Legal move suggestions with highlighted origin/destination squares and explanations.
+
+## Intended use
+Use for bot games, puzzles, training and post-game study. Do not use move assistance during live rated games.
 
 ## Install in Orion
-1. Download the `orion-study-extension` folder as a ZIP from GitHub (or download the repository ZIP).
-2. If Orion's importer asks for a manifest, select `orion-study-extension/manifest.json`.
-3. Enable the extension and open or refresh Chess.com.
-4. Tap **ChessAI Study** in the lower-right corner.
-5. Paste a FEN into the box and tap **Show position**.
-
-If Orion only accepts a single manifest file, use the folder ZIP rather than downloading the manifest by itself: the manifest needs `content.js` alongside it.
+1. Open the repository's Actions page: https://github.com/ArxikeGoodboii/ChessAi/actions
+2. Open the newest successful **Build ChessAI Study Helper** run.
+3. Download the **ChessAI-Study-Helper** artifact and extract it.
+4. Extract the inner `ChessAI-Study-Helper.zip` as well if Orion asks for an unpacked extension.
+5. Install/select `manifest.json` from the extracted extension folder.
+6. Refresh Chess.com and open the ChessAI Study panel.
