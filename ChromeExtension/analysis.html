@@ -9,15 +9,13 @@
 <script>
 (() => {
  const $=id=>document.getElementById(id);
- const engineUrl='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/stockfish-19-lite-single.js';
+ const engineUrl='./stockfish-19-lite-single.js';
  let worker=null, ready=false, busy=false, latestFen='';
  function say(s){$('status').textContent=s}
  function start(){
    if(worker)return;
    try{
-     const source="importScripts('"+engineUrl+"');";
-     const blob=new Blob([source],{type:'text/javascript'});
-     worker=new Worker(URL.createObjectURL(blob));
+     worker=new Worker(engineUrl);
      worker.onmessage=e=>{
        const line=String(e.data||'');
        if(line==='uciok'){worker.postMessage('isready');return}
