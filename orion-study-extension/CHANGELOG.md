@@ -10,3 +10,10 @@
 - Improved Chess.com board detection by searching open shadow roots.
 - Added automatic side recognition from the board's flipped orientation.
 - Added clearer diagnostics when the board cannot be detected.
+
+
+## 1.2.0
+- Added best-effort turn detection from full FEN or move-list progress.
+- Added move-list text and move-count display.
+- Kept board orientation (your side) separate from whose turn it is.
+- Added explicit unknown states when Chess.com does not expose enough game data.
