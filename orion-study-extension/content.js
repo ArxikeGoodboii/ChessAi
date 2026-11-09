@@ -74,44 +74,60 @@
   }
 
   function readChessComBoard() {
-    // Chess.com marks each piece with a color/type class and a square-NN class.
-    const candidates = [...document.querySelectorAll(".piece[class*='square-']")];
-    const found = new Map();
-    for (const el of candidates) {
-      const classes = typeof el.className === "string" ? el.className : el.getAttribute("class") || "";
-      const pieceMatch = classes.match(/(?:^|\s)([wb])([kqrbnp])(?:\s|$)/i);
-      const squareMatch = classes.match(/(?:^|\s)square-([1-8])([1-8])(?:\s|$)/i);
-      if (!pieceMatch || !squareMatch) continue;
-      const color = pieceMatch[1].toLowerCase();
-      const type = pieceMatch[2].toLowerCase();
-      const file = Number(squareMatch[1]);
-      const rank = Number(squareMatch[2]);
-      const fenPiece = color === "w" ? type.toUpperCase() : type;
-      found.set(file + "," + rank, fenPiece);
+    // Search the page and any open shadow roots; some Chess.com layouts use web components.
+    const roots = [document];
+    for (let i = 0; i < roots.length; i++) {
+      let nodes = [];
+      try { nodes = roots[i].querySelectorAll("*"); } catch {}
+      for (const node of nodes) if (node.shadowRoot) roots.push(node.shadowRoot);
     }
-    if (found.size < 2 || ![...found.values()].some(p=>p==="K") || ![...found.values()].some(p=>p==="k")) {
-      throw new Error("Couldn't find a Chess.com board. Open a game or analysis board and try again.");
+    const candidates = [];
+    const boardHosts = [];
+    for (const r of roots) {
+      try {
+        candidates.push(...r.querySelectorAll(".piece"));
+        boardHosts.push(...r.querySelectorAll("wc-chess-board, chess-board"));
+      } catch {}
+    }
+    const found = new Map();
+    for (const el of new Set(candidates)) {
+      const classes = typeof el.className === "string" ? el.className : el.getAttribute("class") || "";
+      const tokens = classes.split(/\\s+/);
+      const pieceMatch = tokens.find(t => /^[wb][kqrbnp]$/i.test(t));
+      const squareMatch = tokens.find(t => /^square-[1-8][1-8]$/i.test(t));
+      if (!pieceMatch || !squareMatch) continue;
+      const color = pieceMatch[0].toLowerCase();
+      const type = pieceMatch[1].toLowerCase();
+      const file = Number(squareMatch[7]);
+      const rank = Number(squareMatch[8]);
+      found.set(file + "," + rank, color === "w" ? type.toUpperCase() : type);
+    }
+    if (found.size < 2 || ![...found.values()].includes("K") || ![...found.values()].includes("k")) {
+      const examples = candidates.slice(0, 5).map(el => String(el.className || el.getAttribute("class") || "")).join(" | ");
+      throw new Error("Board not detected. Found " + candidates.length + " piece elements. Classes: " + (examples || "none"));
     }
     const rows = [];
-    for (let rank=8; rank>=1; rank--) {
-      let row="", empty=0;
-      for (let file=1; file<=8; file++) {
+    for (let rank = 8; rank >= 1; rank--) {
+      let row = "", empty = 0;
+      for (let file = 1; file <= 8; file++) {
         const p = found.get(file + "," + rank);
         if (!p) empty++;
-        else { if (empty) row += empty; row += p; empty=0; }
+        else { if (empty) row += empty; row += p; empty = 0; }
       }
       if (empty) row += empty;
       rows.push(row);
     }
-    return rows.join("/") + " w - - 0 1";
+    const board = boardHosts.find(el => el.classList.contains("flipped"));
+    const side = board ? "Black" : "White";
+    return { fen: rows.join("/") + " w - - 0 1", side, count: found.size };
   }
 
   function syncBoard() {
     try {
-      const fen = readChessComBoard();
-      $("#fen").value = fen;
-      renderFen(fen);
-      $("#status").textContent = "Board detected · piece positions updated.";
+      const result = readChessComBoard();
+      $("#fen").value = result.fen;
+      renderFen(result.fen);
+      $("#status").textContent = "Detected " + result.count + " pieces · you appear to be " + result.side + ".";
     } catch (error) {
       $("#status").textContent = error.message;
     }
