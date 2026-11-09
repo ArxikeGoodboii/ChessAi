@@ -23,7 +23,8 @@ jobs:
 
       - name: Build worker-free chess engine bundle
         run: |
-          npm init -y\n          npm install --no-save chess.js@1.4.0 esbuild@0.25.0
+          echo '{"private":true}' > package.json
+          npm install --no-save chess.js@1.4.0 esbuild@0.25.0
           npx esbuild orion-study-extension/engine.js --bundle --format=iife --global-name=ChessAIEngine --outfile=orion-study-extension/engine.bundle.js
           cp node_modules/chess.js/LICENSE orion-study-extension/CHESSJS-LICENSE.txt
           test -s orion-study-extension/engine.bundle.js
