@@ -64,21 +64,37 @@
     if (document.getElementById(PANEL_ID)) return;
     const panel = document.createElement("aside");
     panel.id = PANEL_ID;
-    panel.innerHTML =
-      '<div class="chessai-head"><strong>♞ ChessAi · Study</strong>' +
-      '<button type="button" aria-label="Minimize panel">−</button></div>' +
-      '<p class="chessai-status">Looking for an analysis board…</p>' +
-      '<iframe title="ChessAi Stockfish study analysis" src="' + PAGE_URL + '" loading="lazy"></iframe>' +
-      '<small>Chess.com analysis and completed-game review</small>';
+
+    const head = document.createElement("div");
+    head.className = "chessai-head";
+    const title = document.createElement("strong");
+    title.textContent = "♞ ChessAi · Study";
+    const minimize = document.createElement("button");
+    minimize.type = "button";
+    minimize.setAttribute("aria-label", "Minimize panel");
+    minimize.textContent = "−";
+    head.append(title, minimize);
+
+    const status = document.createElement("p");
+    status.className = "chessai-status";
+    status.textContent = "Looking for an analysis board…";
+
+    const frame = document.createElement("iframe");
+    frame.title = "ChessAi Stockfish study analysis";
+    frame.src = PAGE_URL;
+    frame.loading = "lazy";
+
+    const note = document.createElement("small");
+    note.textContent = "Chess.com analysis and completed-game review";
+
+    panel.append(head, status, frame, note);
     document.documentElement.appendChild(panel);
 
-    panel.querySelector("button").addEventListener("click", () => {
+    minimize.addEventListener("click", () => {
       panel.classList.toggle("chessai-min");
-      panel.querySelector("button").textContent =
-        panel.classList.contains("chessai-min") ? "+" : "−";
+      minimize.textContent = panel.classList.contains("chessai-min") ? "+" : "−";
     });
 
-    const frame = panel.querySelector("iframe");
     frame.addEventListener("load", () => sendPosition());
   }
 
