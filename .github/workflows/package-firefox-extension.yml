@@ -16,13 +16,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Create correctly structured ZIP
+      - name: Create clean Firefox extension ZIP
         run: |
           cd ChromeExtension
-          zip -r ../ChessAi-Firefox.zip . -x "*.txt"
+          zip -X -r ../ChessAi-Firefox.zip . -x "*/.*" ".*" "__MACOSX/*"
+          cd ..
+          unzip -l ChessAi-Firefox.zip
+          unzip -Z1 ChessAi-Firefox.zip | grep -qx "manifest.json"
 
       - name: Upload extension ZIP
         uses: actions/upload-artifact@v4
         with:
           name: ChessAi-Firefox
           path: ChessAi-Firefox.zip
+          if-no-files-found: error
