@@ -217,18 +217,56 @@
       ((typeof chrome !== "undefined" && chrome.runtime) ? chrome.runtime : null);
     if (!runtime || !runtime.getURL) throw new Error("Orion did not expose the extension worker URL API.");
     const url = runtime.getURL("stockfish-19-lite-single.js");
+    const probeUrl = runtime.getURL("worker-probe.js");
+
+    let probe;
+    try {
+      probe = new Worker(probeUrl);
+    } catch (error) {
+      throw new Error("Orion could not create even a basic extension worker: " + (error && error.message ? error.message : String(error)));
+    }
+
+    let probeFinished = false;
+    const probeTimer = setTimeout(() => {
+      if (probeFinished) return;
+      probeFinished = true;
+      probe.terminate();
+      analysisPending = false;
+      setRecommendation("Orion worker test timed out", "A tiny test worker did not answer. This points to Orion's extension-worker support or extension resource loading, not the Stockfish engine.");
+    }, 4000);
+
+    probe.onmessage = event => {
+      if (probeFinished || event.data !== "chessai-worker-probe-ok") return;
+      probeFinished = true;
+      clearTimeout(probeTimer);
+      probe.terminate();
+      startStockfishWorker(url);
+    };
+    probe.onerror = event => {
+      if (probeFinished) return;
+      probeFinished = true;
+      clearTimeout(probeTimer);
+      probe.terminate();
+      analysisPending = false;
+      const reason = event && event.message ? event.message : "No browser error detail was provided.";
+      setRecommendation("Orion worker test failed", reason + " · Test URL: " + probeUrl);
+    };
+    probe.postMessage("ping");
+  }
+
+  function startStockfishWorker(url) {
     try {
       engineWorker = new Worker(url);
     } catch (error) {
-      throw new Error("Worker constructor blocked: " + (error && error.message ? error.message : String(error)) + " · URL: " + url);
+      throw new Error("Stockfish worker constructor blocked: " + (error && error.message ? error.message : String(error)) + " · URL: " + url);
     }
     let gotUciOk = false;
     const startupTimer = setTimeout(() => {
       if (!gotUciOk) {
         analysisPending = false;
-        setRecommendation("Engine startup timed out", "The worker loaded but did not answer UCI. Check the bundled JS/WASM pair and Orion worker support. URL: " + url);
+        setRecommendation("Stockfish did not answer UCI", "The basic worker test passed, so Orion can run extension workers. Stockfish itself failed to initialize; the likely issue is its WASM loading or worker script compatibility. URL: " + url);
       }
-    }, 10000);
+    }, 15000);
     engineWorker.onmessage = event => {
       const line = String(event.data || "");
       if (line === "uciok") {
@@ -241,7 +279,7 @@
         if (analysisPending) runAnalysis();
       } else if (line.startsWith("bestmove ")) {
         analysisPending = false;
-        const move = line.split(/\s+/)[1];
+        const move = line.split(/\\s+/)[1];
         if (!move || move === "(none)" || move === "0000") {
           setRecommendation("No legal move", "The engine found no legal move in this position.");
           return;
@@ -252,7 +290,7 @@
         const promotion = move[4] ? " · promotes to " + pieceLabel(move[4]) : "";
         setRecommendation("Stockfish top move", "From " + from + " to " + to + promotion + ". Engine line: " + move, pieceLabel(symbol) + " " + from + " → " + to);
       } else if (line.startsWith("info depth")) {
-        const depth = line.match(/\\bdepth (\\d+)/);
+        const depth = line.match(/\\\\bdepth (\\\\d+)/);
         if (depth) $("#status").textContent = "Analyzing study position · depth " + depth[1] + "…";
       }
     };
@@ -260,11 +298,11 @@
       analysisPending = false;
       const reason = event && event.message ? event.message : "No browser error detail was provided.";
       const location = event && event.filename ? " · " + event.filename + (event.lineno ? ":" + event.lineno : "") : "";
-      setRecommendation("Engine failed to start", reason + location + " · Worker URL: " + url);
+      setRecommendation("Stockfish worker error", reason + location + " · Worker URL: " + url);
     };
     engineWorker.onmessageerror = () => {
       analysisPending = false;
-      setRecommendation("Engine message error", "Orion could not decode a message from the Stockfish worker. Worker URL: " + url);
+      setRecommendation("Stockfish message error", "Orion could not decode a message from the Stockfish worker. Worker URL: " + url);
     };
     engineWorker.postMessage("uci");
   }
