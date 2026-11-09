@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChessAi Study Helper",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Reads chess positions on Chess.com analysis pages.",
   "content_scripts": [
     {
@@ -9,7 +9,9 @@
         "https://www.chess.com/analysis*",
         "https://chess.com/analysis*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ]
