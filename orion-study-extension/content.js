@@ -240,7 +240,7 @@
       probeFinished = true;
       clearTimeout(probeTimer);
       probe.terminate();
-      startStockfishWorker(url);
+      try { startStockfishWorker(url); } catch (error) { setRecommendation("Stockfish worker could not start", error.message); }
     };
     probe.onerror = event => {
       if (probeFinished) return;
@@ -279,7 +279,7 @@
         if (analysisPending) runAnalysis();
       } else if (line.startsWith("bestmove ")) {
         analysisPending = false;
-        const move = line.split(/\\s+/)[1];
+        const move = line.split(/\s+/)[1];
         if (!move || move === "(none)" || move === "0000") {
           setRecommendation("No legal move", "The engine found no legal move in this position.");
           return;
