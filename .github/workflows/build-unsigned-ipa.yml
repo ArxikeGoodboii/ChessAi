@@ -9,6 +9,9 @@ on:
       - "project.yml"
       - ".github/workflows/build-unsigned-ipa.yml"
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-15
@@ -53,3 +56,12 @@ jobs:
           path: ChessAi-unsigned.ipa
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish direct IPA download
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: unsigned-build-${{ github.run_number }}
+          name: ChessAi unsigned IPA build ${{ github.run_number }}
+          files: ChessAi-unsigned.ipa
+          fail_on_unmatched_files: true
