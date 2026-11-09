@@ -1,5 +1,4 @@
 import SwiftUI
-import ReplayKit
 
 struct ContentView: View {
     @State private var board: [[String]] = [
@@ -15,7 +14,6 @@ struct ContentView: View {
     @State private var selected: (row: Int, col: Int)?
     @State private var moveText = "Tap a piece, then tap its destination."
     @State private var moveCount = 0
-    @State private var latestScreenFrame: UIImage?
 
     private let files = ["a","b","c","d","e","f","g","h"]
 
@@ -31,35 +29,6 @@ struct ContentView: View {
                     Spacer()
                     Image(systemName: "brain.head.profile").font(.system(size: 27)).foregroundStyle(.cyan)
                 }
-                .padding(.horizontal)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("SCREEN REVIEW").font(.caption.bold()).tracking(2).foregroundStyle(.cyan)
-                    Text("Start a broadcast using Apple's system permission prompt. ChessAi saves occasional still frames locally for review.")
-                        .font(.caption).foregroundStyle(.white.opacity(0.7))
-                    HStack {
-                        ScreenBroadcastPicker()
-                            .frame(width: 170, height: 44)
-                        Spacer()
-                        Button("Refresh frame") { loadLatestScreenFrame() }
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.cyan)
-                    }
-                    if let latestScreenFrame {
-                        Image(uiImage: latestScreenFrame)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 180)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        Text("Last saved frame • stored on this device")
-                            .font(.caption2).foregroundStyle(.white.opacity(0.5))
-                    } else {
-                        Text("No screen frame saved yet.")
-                            .font(.caption2).foregroundStyle(.white.opacity(0.45))
-                    }
-                }
-                .padding(14)
-                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
                 .padding(.horizontal)
 
                 VStack(spacing: 0) {
@@ -120,14 +89,6 @@ struct ContentView: View {
             .padding(.top, 18)
         }
         .preferredColorScheme(.dark)
-        .onAppear(perform: loadLatestScreenFrame)
-    }
-
-    private func loadLatestScreenFrame() {
-        guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.arxike.chessai") else { return }
-        let url = container.appendingPathComponent("latest-screen.jpg")
-        guard let data = try? Data(contentsOf: url), let image = UIImage(data: data) else { return }
-        latestScreenFrame = image
     }
 
     private func pieceColor(_ piece: String) -> Color {
@@ -172,17 +133,3 @@ struct ContentView: View {
     }
 }
 
-
-struct ScreenBroadcastPicker: UIViewRepresentable {
-    func makeUIView(context: Context) -> RPSystemBroadcastPickerView {
-        let picker = RPSystemBroadcastPickerView(frame: .zero)
-        picker.preferredExtension = "com.arxike.chessai.broadcast-upload"
-        picker.showsMicrophoneButton = false
-        picker.backgroundColor = UIColor(red: 0.02, green: 0.55, blue: 0.68, alpha: 1)
-        picker.layer.cornerRadius = 10
-        picker.clipsToBounds = true
-        return picker
-    }
-
-    func updateUIView(_ uiView: RPSystemBroadcastPickerView, context: Context) {}
-}

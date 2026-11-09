@@ -6,7 +6,6 @@ on:
     branches: [main]
     paths:
       - "Sources/**"
-      - "BroadcastExtension/**"
       - "project.yml"
       - ".github/workflows/build-unsigned-ipa.yml"
 
@@ -46,7 +45,6 @@ jobs:
         run: |
           APP_PATH="build/Build/Products/Release-iphoneos/ChessAi.app"
           test -d "$APP_PATH"
-          test -d "$APP_PATH/PlugIns/ChessAiBroadcastUpload.appex"
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/
           zip -r ChessAi-unsigned.ipa Payload
