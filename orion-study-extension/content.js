@@ -34,7 +34,8 @@
       <label>Move history</label><div class="movehistory" id="history">No move history detected yet.</div>
       <label for="fen">Detected FEN</label>
       <textarea id="fen" spellcheck="false">${START_FEN}</textarea>
-      <div class="row"><button class="action" id="show">Show FEN</button></div>
+      <div class="row"><button class="action" id="show">Show FEN</button><button class="action" id="analyze">Analyze study position</button></div>
+      <div class="recommend" id="recommend"><strong>Best move</strong><div class="detail">Load a complete six-field FEN from a puzzle or completed game, then analyze.</div></div>
       <div class="board" id="board" aria-label="Chess position"></div>
       <p class="foot">Turn and history are read only when Chess.com exposes reliable game data. A full legal-position FEN is used when available; otherwise special rights are marked unknown. Engine suggestions are the next development step. Use for bots, puzzles and study—not live rated games.</p>
     </div>`;
@@ -170,12 +171,112 @@
     return { fen, side, count: found.size, turn: meta.turn, plyCount: meta.plyCount, moveText: meta.moveText, fullFen: !!meta.fullFen };
   }
 
+  let engineWorker = null;
+  let engineReady = false;
+  let analysisPending = false;
+  let lastBestMove = "";
+
+  function setRecommendation(title, detail, best = "") {
+    $("#recommend").innerHTML = "<strong></strong><div class='best'></div><div class='detail'></div>";
+    $("#recommend strong").textContent = title;
+    $("#recommend .best").textContent = best;
+    $("#recommend .detail").textContent = detail;
+  }
+
+  function squareName(file, rank) {
+    return file + rank;
+  }
+
+  function pieceAt(fen, square) {
+    const [placement] = fen.split(/\\s+/);
+    const file = square.charCodeAt(0) - 97;
+    const rank = Number(square[1]);
+    const rows = placement.split("/");
+    let row = rows[8-rank], index = 0;
+    for (const ch of row) {
+      if (/^[1-8]$/.test(ch)) {
+        const n = Number(ch);
+        if (file >= index && file < index+n) return "";
+        index += n;
+      } else {
+        if (index === file) return ch;
+        index++;
+      }
+    }
+    return "";
+  }
+
+  function pieceLabel(symbol) {
+    const names = {k:"King",q:"Queen",r:"Rook",b:"Bishop",n:"Knight",p:"Pawn"};
+    return names[(symbol || "").toLowerCase()] || "Piece";
+  }
+
+  function ensureEngine() {
+    if (engineWorker) return;
+    const runtime = (typeof browser !== "undefined" && browser.runtime) ? browser.runtime :
+      ((typeof chrome !== "undefined" && chrome.runtime) ? chrome.runtime : null);
+    if (!runtime || !runtime.getURL) throw new Error("Orion did not expose the extension worker URL API.");
+    const url = runtime.getURL("stockfish-19-lite-single.js");
+    engineWorker = new Worker(url);
+    engineWorker.onmessage = event => {
+      const line = String(event.data || "");
+      if (line === "uciok") {
+        engineWorker.postMessage("isready");
+      } else if (line === "readyok") {
+        engineReady = true;
+        $("#status").textContent = "Stockfish ready.";
+        if (analysisPending) runAnalysis();
+      } else if (line.startsWith("bestmove ")) {
+        analysisPending = false;
+        const move = line.split(/\\s+/)[1];
+        if (!move || move === "(none)" || move === "0000") {
+          setRecommendation("No legal move", "The engine found no legal move in this position.");
+          return;
+        }
+        lastBestMove = move;
+        const from = move.slice(0,2), to = move.slice(2,4);
+        const symbol = pieceAt($("#fen").value.trim(), from);
+        const promotion = move[4] ? " · promotes to " + pieceLabel(move[4]) : "";
+        setRecommendation("Stockfish top move", "From " + from + " to " + to + promotion + ". Engine line: " + move, pieceLabel(symbol) + " " + from + " → " + to);
+      } else if (line.startsWith("info depth")) {
+        const depth = line.match(/\\bdepth (\\d+)/);
+        if (depth) $("#status").textContent = "Analyzing study position · depth " + depth[1] + "…";
+      }
+    };
+    engineWorker.onerror = () => {
+      analysisPending = false;
+      setRecommendation("Engine failed to load", "Orion could not start the bundled Stockfish worker. Check that both Stockfish files are installed.");
+    };
+    engineWorker.postMessage("uci");
+  }
+
+  function runAnalysis() {
+    const fen = $("#fen").value.trim();
+    const fields = fen.split(/\\s+/);
+    if (fields.length !== 6 || !/^[wb]$/.test(fields[1])) {
+      setRecommendation("Complete FEN required", "A full six-field FEN is needed so the engine knows the turn and special chess rights. Position-only FEN is not enough.");
+      return;
+    }
+    try {
+      ensureEngine();
+      analysisPending = true;
+      setRecommendation("Analyzing…", "Stockfish is calculating a move for this study position.");
+      if (!engineReady) return;
+      engineWorker.postMessage("stop");
+      engineWorker.postMessage("position fen " + fen);
+      engineWorker.postMessage("go depth 13");
+    } catch (error) {
+      setRecommendation("Engine unavailable", error.message);
+    }
+  }
+
   function syncBoard() {
     try {
       const result = readChessComBoard();
       $("#fen").value = result.fen;
       renderFen(result.fen);
       $("#status").textContent = "Detected " + result.count + " pieces.";
+      if (result.fullFen) $("#fen").value = result.fen;
       $("#your-side").textContent = result.side + " (board orientation)";
       $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — Chess.com did not expose turn data";
       $("#move-count").textContent = result.plyCount === null ? "Unknown" : String(result.plyCount) + " half-moves";
@@ -186,6 +287,7 @@
   }
 
   $("#read").addEventListener("click", syncBoard);
+  $("#analyze").addEventListener("click", runAnalysis);
   $("#show").addEventListener("click", () => {
     try { renderFen($("#fen").value); $("#status").textContent = "FEN displayed."; }
     catch (error) { $("#status").textContent = error.message; }
