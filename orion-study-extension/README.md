@@ -21,7 +21,7 @@ The local search is deliberately lightweight and limited to a shallow depth. It 
 Use for puzzles, training and post-game study—not live rated games.
 
 ## Dependency license
-The bundled chess.js library is distributed under the MIT license. Its license text is included as `CHESSJS-LICENSE.txt`. Source: https://github.com/jhlywa/chess.js
+The bundled chess.js library is distributed under the BSD 2-Clause license. Its license text is included as `CHESSJS-LICENSE.txt`. Source: https://github.com/jhlywa/chess.js
 
 ## Install in Orion
 1. Open the repository's Actions page: https://github.com/ArxikeGoodboii/ChessAi/actions
