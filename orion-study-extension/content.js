@@ -272,16 +272,26 @@
     return names[(symbol || "").toLowerCase()] || "Piece";
   }
 
-  async function runAnalysis() {
+  async function runAnalysis(automatic = false) {
     if (!supportedChessPage()) {
-      setRecommendation("Chess.com page required", "Open a Chess.com page and read the board first.");
+      setRecommendation("Chess.com page required", "Open a supported Chess.com practice page and read the board first.");
       return;
     }
-    const fen = $("#fen").value.trim();
-    const fields = fen.split(/\s+/);
+    let fen = $("#fen").value.trim();
+    let fields = fen.split(/\s+/);
     if (fields.length !== 6 || !/^[wb]$/.test(fields[1])) {
-      setRecommendation("Complete FEN required", "Enter a valid six-field FEN, including side to move, castling rights and en-passant square.");
-      return;
+      // Manual analysis may use the visible piece placement and the user's
+      // selected colour as an explicit turn assumption. Never use this for
+      // automatic analysis because the real turn is unknown.
+      const placement = fields[0] || "";
+      if (automatic || !confirmedSide || !/^(?:[prnbqkPRNBQK1-8]+\/){7}[prnbqkPRNBQK1-8]+$/.test(placement)) {
+        setRecommendation("Turn data unavailable", "Chess.com has not exposed a complete FEN. Select your colour, then use Analyze now for a manual study estimate.");
+        return;
+      }
+      const assumedTurn = confirmedSide === "White" ? "w" : "b";
+      fen = placement + " " + assumedTurn + " - - 0 1";
+      fields = fen.split(/\s+/);
+      $("#status").textContent = "Manual analysis · assuming " + confirmedSide + " to move; castling/en-passant rights are unknown.";
     }
     if (!confirmedSide) {
       setRecommendation("Choose your colour", "Select White or Black first.");
@@ -351,7 +361,7 @@
       $("#history").textContent = result.moveText || "Move list not found in the page. Turn may be unavailable.";
       if (allowed && confirmedSide && result.turn && (result.turn === (confirmedSide === "White" ? "w" : "b")) && result.fen !== lastAutoFen && !analysisPending && !autoScheduled) {
         autoScheduled = true;
-        setTimeout(() => { autoScheduled = false; if (supportedChessPage()) runAnalysis(); }, 180);
+        setTimeout(() => { autoScheduled = false; if (supportedChessPage()) runAnalysis(true); }, 180);
       }
     } catch (error) {
       $("#status").textContent = error.message;
