@@ -55,11 +55,22 @@ function quiescence(chess, alpha, beta, rootColor, state, ply, qply) {
     if (standPat >= beta) return beta;
     if (standPat > alpha) alpha = standPat;
     if (qply >= QUIESCENCE_DEPTH) return standPat;
-  } else if (qply >= QUIESCENCE_DEPTH) {
-    return standPat;
   }
 
   let moves = chess.moves({ verbose: true });
+  // Never stand pat while in check. At the horizon, search one legal evasion layer.
+  if (inCheck && qply >= QUIESCENCE_DEPTH) {
+    if (!moves.length) return chess.turn() === rootColor ? -MATE + ply : MATE - ply;
+    const maximizingNow = chess.turn() === rootColor;
+    let bestNow = maximizingNow ? -Infinity : Infinity;
+    for (const move of moves) {
+      chess.move({ from: move.from, to: move.to, promotion: move.promotion });
+      const score = evaluate(chess, rootColor);
+      chess.undo();
+      bestNow = maximizingNow ? Math.max(bestNow, score) : Math.min(bestNow, score);
+    }
+    return bestNow;
+  }
   if (!inCheck) moves = moves.filter(m => m.captured || m.promotion);
   moves = moveOrder(moves);
   if (!moves.length) return inCheck ? (chess.turn() === rootColor ? -MATE + ply : MATE - ply) : standPat;
