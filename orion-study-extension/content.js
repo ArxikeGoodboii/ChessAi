@@ -12,7 +12,7 @@
     :host { all: initial; } * { box-sizing: border-box; }
     .launcher { position:fixed;right:16px;bottom:22px;z-index:2147483647;border:0;border-radius:999px;padding:12px 17px;color:white;background:#242b38;font:700 14px system-ui;box-shadow:0 5px 22px #0005;cursor:pointer; }
     .panel { position:fixed;right:16px;bottom:76px;z-index:2147483647;width:min(340px,calc(100vw - 24px));max-height:min(76vh,680px);overflow:auto;border:1px solid #394252;border-radius:16px;background:#171c25;color:#f3f5f8;box-shadow:0 12px 40px #0008;font:14px/1.45 system-ui,sans-serif; }
-    .hidden { display:none; } header { display:flex;justify-content:space-between;align-items:center;padding:13px 15px;background:#222a36;border-radius:16px 16px 0 0; }
+    .hidden { display:none; } header { display:flex;justify-content:space-between;align-items:center;padding:13px 15px;background:#222a36;border-radius:16px 16px 0 0; }\n    .focus-toggle{border:1px solid #526078;border-radius:8px;padding:6px 9px;background:#273246;color:#fff;font:700 12px system-ui;cursor:pointer}.panel.focus{width:min(220px,calc(100vw - 24px));max-height:150px;bottom:22px;border-radius:12px}.panel.focus header{display:none}.panel.focus .body{padding:10px}.panel.focus .body>*:not(#recommend){display:none!important}.panel.focus #recommend{display:block;margin:0;padding:0;border:0;background:transparent}.panel.focus #recommend strong,.panel.focus #recommend .detail{display:none}.panel.focus #recommend .best{display:block;padding:8px 30px 8px 4px;font-size:18px;font-weight:800;line-height:1.25;color:#fff}.panel.focus .expand-focus{display:block}.expand-focus{display:none;position:absolute;right:8px;top:8px;border:0;border-radius:6px;padding:4px 7px;background:#303b4c;color:#fff;font-size:16px;cursor:pointer}
     header strong {font-size:15px}.close{border:0;color:#dce2ec;background:transparent;font-size:22px;cursor:pointer}.side-choice{border:1px solid #526078;border-radius:8px;padding:7px 11px;background:#273246;color:#fff;font-weight:700;cursor:pointer}.muted{color:#aeb9c9;font-size:12px}.body{padding:14px}
     .hint{margin:0 0 10px;color:#b7c0ce;font-size:12px}label{display:block;margin:9px 0 5px;color:#dce2ec;font-size:12px;font-weight:700}
     textarea{display:block;width:100%;min-height:76px;resize:vertical;border:1px solid #465164;border-radius:9px;padding:9px;background:#0f131a;color:#f3f5f8;font:12px/1.4 ui-monospace,monospace}
@@ -26,7 +26,7 @@
   const panel = document.createElement("section");
   panel.className = "panel hidden";
   panel.innerHTML = `
-    <header><strong>♟ ChessAI · Study Helper</strong><button class="close" id="minimize" aria-label="Minimize">—</button></header>
+    <header><strong>♟ ChessAI · Study Helper</strong><div class="row" style="margin:0"><button class="focus-toggle" id="focus-toggle">Focus</button><button class="close" id="minimize" aria-label="Minimize">—</button></div></header>
     <div class="body">
       <p class="hint">Reads the piece positions from the Chess.com board for study and review.</p>
       <div class="row"><button class="action" id="read">Read Chess.com board</button><span class="status" id="status">Waiting for a chessboard…</span></div>
@@ -35,7 +35,7 @@
       <label for="fen">Detected FEN</label>
       <textarea id="fen" spellcheck="false">${START_FEN}</textarea>
       <div class="row"><button class="action" id="show">Show FEN</button><button class="action" id="analyze">Analyze now</button></div>
-      <div class="recommend" id="recommend"><strong>Best move</strong><div class="detail">Load a complete six-field FEN from a puzzle or completed game, then analyze.</div></div>
+      <div class="recommend" id="recommend"><strong>Best move</strong><div class="best">Waiting for a position</div><div class="detail">Choose your colour and read the board.</div><button class="expand-focus" id="expand-focus" aria-label="Expand panel">↗</button></div>
       <div class="board" id="board" aria-label="Chess position"></div>
       <p class="foot">Works on Chess.com pages where the board and turn can be read. Confirm your colour if asked. Automatic analysis only starts when it can identify your turn. Suggestions use a lightweight local search, not Stockfish.</p>
     </div>`;
@@ -248,6 +248,17 @@
       setRecommendation("Complete FEN required", "Enter a valid six-field FEN, including side to move, castling rights and en-passant square.");
       return;
     }
+    if (!confirmedSide) {
+      setRecommendation("Choose your colour", "Select White or Black first.");
+      $("#side-confirm").classList.remove("hidden");
+      return;
+    }
+    const yourTurn = confirmedSide === "White" ? "w" : "b";
+    if (fields[1] !== yourTurn) {
+      const turnName = fields[1] === "w" ? "White" : "Black";
+      setRecommendation("Waiting for your turn", turnName + " to move. ChessAI will suggest a move when " + confirmedSide + " is to move.", "Waiting for " + confirmedSide + " to move");
+      return;
+    }
     if (!globalThis.ChessAIEngine || typeof globalThis.ChessAIEngine.analyzeFen !== "function") {
       setRecommendation("Analysis engine missing", "The worker-free engine bundle was not loaded. Reinstall the newest ChessAI build.");
       return;
@@ -318,7 +329,7 @@
     try { renderFen($("#fen").value); $("#status").textContent = "FEN displayed."; }
     catch (error) { $("#status").textContent = error.message; }
   });
-  $("#minimize").addEventListener("click", () => panel.classList.add("hidden"));
+  $("#minimize").addEventListener("click", () => panel.classList.add("hidden"));\n  $("#focus-toggle").addEventListener("click", () => panel.classList.toggle("focus"));\n  root.addEventListener("click", event => { if (event.target && event.target.closest && event.target.closest("#expand-focus")) panel.classList.remove("focus"); });
   root.querySelectorAll("[data-side]").forEach(button => button.addEventListener("click", () => {
     confirmedSide = button.getAttribute("data-side");
     sideManuallyConfirmed = true;
