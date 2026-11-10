@@ -37,7 +37,7 @@
       <div class="row"><button class="action" id="show">Show FEN</button><button class="action" id="analyze">Analyze now</button></div>
       <div class="recommend" id="recommend"><strong>Best move</strong><div class="detail">Load a complete six-field FEN from a puzzle or completed game, then analyze.</div></div>
       <div class="board" id="board" aria-label="Chess position"></div>
-      <p class="foot">Automatic suggestions are limited to recognized computer games, puzzles and study pages. Live/unsupported game pages are not auto-analysed. Turn detection must be available; colour can be confirmed manually. Suggestions use a lightweight local search, not Stockfish.</p>
+      <p class="foot">Works on Chess.com pages where the board and turn can be read. Confirm your colour if asked. Automatic analysis only starts when it can identify your turn. Suggestions use a lightweight local search, not Stockfish.</p>
     </div>`;
   root.append(panel);
 
@@ -181,7 +181,7 @@
         depth++;
       }
       // On a visible Chess.com board, absence of the flipped marker means White.
-      return "White";
+      return "Unknown";
     });
     const uniqueOrientations = [...new Set(orientations)];
     const side = uniqueOrientations.length === 1 ? uniqueOrientations[0] : "Unknown";
@@ -194,14 +194,14 @@
   let analysisPending = false;
   let analysisRun = 0;
   let confirmedSide = "";
+  let sideManuallyConfirmed = false;
   let activeGameKey = "";
   let lastSeenPlacement = "";
   let lastAutoFen = "";
   let autoScheduled = false;
 
-  function practiceMode() {
-    const path = (location.pathname || "").toLowerCase();
-    return /\/(play\/computer|puzzles?|analysis|study|training)(\/|$)/.test(path);
+  function supportedChessPage() {
+    return location.hostname === "www.chess.com" || location.hostname === "chess.com";
   }
 
   function currentGameKey() { return (location.pathname || "") + (location.search || ""); }
@@ -238,8 +238,8 @@
   }
 
   async function runAnalysis() {
-    if (!practiceMode()) {
-      setRecommendation("Automatic analysis unavailable here", "Open a computer game, puzzle, or study/analysis page. Live and unsupported game pages are intentionally blocked.");
+    if (!supportedChessPage()) {
+      setRecommendation("Chess.com page required", "Open a Chess.com page and read the board first.");
       return;
     }
     const fen = $("#fen").value.trim();
@@ -283,29 +283,29 @@
   function syncBoard() {
     try {
       const gameKey = currentGameKey();
-      if (gameKey !== activeGameKey) { activeGameKey = gameKey; confirmedSide = ""; lastAutoFen = ""; }
+      if (gameKey !== activeGameKey) { activeGameKey = gameKey; confirmedSide = ""; sideManuallyConfirmed = false; lastAutoFen = ""; }
       const result = readChessComBoard();
       const placementNow = result.fen.split(/\s+/)[0];
       const startingPlacement = START_FEN.split(" ")[0];
-      if (lastSeenPlacement && lastSeenPlacement !== placementNow && placementNow === startingPlacement) { confirmedSide = ""; lastAutoFen = ""; }
+      if (lastSeenPlacement && lastSeenPlacement !== placementNow && placementNow === startingPlacement) { confirmedSide = ""; sideManuallyConfirmed = false; lastAutoFen = ""; }
       lastSeenPlacement = placementNow;
       $("#fen").value = result.fen;
       renderFen(result.fen);
       $("#status").textContent = "Detected " + result.count + " pieces.";
       if (result.fullFen) $("#fen").value = result.fen;
       const detectedSide = result.side === "Unknown" ? "" : result.side;
-      if (detectedSide) confirmedSide = detectedSide;
+      if (detectedSide && !sideManuallyConfirmed) confirmedSide = detectedSide;
       $("#your-side").textContent = confirmedSide || "Needs confirmation";
       $("#side-confirm").classList.toggle("hidden", !!confirmedSide);
-      const allowed = practiceMode();
-      $("#mode").textContent = allowed ? "Practice / study" : "Auto-analysis off (unsupported or live game)";
+      const allowed = supportedChessPage();
+      $("#mode").textContent = allowed ? "Chess.com page" : "Unsupported page";
       $("#analyze").disabled = !allowed;
       $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — Chess.com did not expose turn data";
       $("#move-count").textContent = result.plyCount === null ? "Unknown" : String(result.plyCount) + " half-moves";
       $("#history").textContent = result.moveText || "Move list not found in the page. Turn may be unavailable.";
       if (allowed && confirmedSide && result.turn && (result.turn === (confirmedSide === "White" ? "w" : "b")) && result.fen !== lastAutoFen && !analysisPending && !autoScheduled) {
         autoScheduled = true;
-        setTimeout(() => { autoScheduled = false; if (practiceMode()) runAnalysis(); }, 180);
+        setTimeout(() => { autoScheduled = false; if (supportedChessPage()) runAnalysis(); }, 180);
       }
     } catch (error) {
       $("#status").textContent = error.message;
@@ -321,6 +321,7 @@
   $("#minimize").addEventListener("click", () => panel.classList.add("hidden"));
   root.querySelectorAll("[data-side]").forEach(button => button.addEventListener("click", () => {
     confirmedSide = button.getAttribute("data-side");
+    sideManuallyConfirmed = true;
     $("#your-side").textContent = confirmedSide + " (confirmed)";
     $("#side-confirm").classList.add("hidden");
     lastAutoFen = "";
