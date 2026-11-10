@@ -13,7 +13,7 @@
     .launcher { position:fixed;right:16px;bottom:22px;z-index:2147483647;border:0;border-radius:999px;padding:12px 17px;color:white;background:#242b38;font:700 14px system-ui;box-shadow:0 5px 22px #0005;cursor:pointer; }
     .panel { position:fixed;right:16px;bottom:76px;z-index:2147483647;width:min(340px,calc(100vw - 24px));max-height:min(76vh,680px);overflow:auto;border:1px solid #394252;border-radius:16px;background:#171c25;color:#f3f5f8;box-shadow:0 12px 40px #0008;font:14px/1.45 system-ui,sans-serif; }
     .hidden { display:none; } header { display:flex;justify-content:space-between;align-items:center;padding:13px 15px;background:#222a36;border-radius:16px 16px 0 0; }
-    header strong {font-size:15px}.close{border:0;color:#dce2ec;background:transparent;font-size:22px;cursor:pointer}.body{padding:14px}
+    header strong {font-size:15px}.close{border:0;color:#dce2ec;background:transparent;font-size:22px;cursor:pointer}.side-choice{border:1px solid #526078;border-radius:8px;padding:7px 11px;background:#273246;color:#fff;font-weight:700;cursor:pointer}.muted{color:#aeb9c9;font-size:12px}.body{padding:14px}
     .hint{margin:0 0 10px;color:#b7c0ce;font-size:12px}label{display:block;margin:9px 0 5px;color:#dce2ec;font-size:12px;font-weight:700}
     textarea{display:block;width:100%;min-height:76px;resize:vertical;border:1px solid #465164;border-radius:9px;padding:9px;background:#0f131a;color:#f3f5f8;font:12px/1.4 ui-monospace,monospace}
     button.action{border:0;border-radius:9px;padding:9px 12px;background:#7c9cff;color:#101522;font-weight:700;cursor:pointer}.row{display:flex;gap:8px;align-items:center;margin-top:9px;flex-wrap:wrap}
@@ -26,18 +26,18 @@
   const panel = document.createElement("section");
   panel.className = "panel hidden";
   panel.innerHTML = `
-    <header><strong>♟ ChessAI · Study Helper</strong><button class="close" aria-label="Close">×</button></header>
+    <header><strong>♟ ChessAI · Study Helper</strong><button class="close" id="minimize" aria-label="Minimize">—</button></header>
     <div class="body">
       <p class="hint">Reads the piece positions from the Chess.com board for study and review.</p>
       <div class="row"><button class="action" id="read">Read Chess.com board</button><span class="status" id="status">Waiting for a chessboard…</span></div>
-      <div class="meta"><div><b>Your side:</b> <strong id="your-side">Not detected</strong></div><div><b>Next to move:</b> <strong id="turn">Not detected</strong></div><div><b>Move count:</b> <strong id="move-count">Not detected</strong></div></div>
+      <div class="meta"><div><b>Your side:</b> <strong id="your-side">Not detected</strong></div><div><b>Next to move:</b> <strong id="turn">Not detected</strong></div><div><b>Move count:</b> <strong id="move-count">Not detected</strong></div><div><b>Mode:</b> <strong id="mode">Checking…</strong></div></div><div id="side-confirm" class="row hidden"><span class="muted">Which colour are you playing?</span><button class="side-choice" data-side="White">White</button><button class="side-choice" data-side="Black">Black</button></div>
       <label>Move history</label><div class="movehistory" id="history">No move history detected yet.</div>
       <label for="fen">Detected FEN</label>
       <textarea id="fen" spellcheck="false">${START_FEN}</textarea>
-      <div class="row"><button class="action" id="show">Show FEN</button><button class="action" id="analyze">Analyze study position</button></div>
+      <div class="row"><button class="action" id="show">Show FEN</button><button class="action" id="analyze">Analyze now</button></div>
       <div class="recommend" id="recommend"><strong>Best move</strong><div class="detail">Load a complete six-field FEN from a puzzle or completed game, then analyze.</div></div>
       <div class="board" id="board" aria-label="Chess position"></div>
-      <p class="foot">Turn and history are read only when Chess.com exposes reliable game data. A full legal-position FEN is used when available; otherwise special rights are marked unknown. Suggestions use a lightweight local search. Use for bots, puzzles and study—not live rated games.</p>
+      <p class="foot">Automatic suggestions are limited to recognized computer games, puzzles and study pages. Live/unsupported game pages are not auto-analysed. Turn detection must be available; colour can be confirmed manually. Suggestions use a lightweight local search, not Stockfish.</p>
     </div>`;
   root.append(panel);
 
@@ -193,6 +193,17 @@
 
   let analysisPending = false;
   let analysisRun = 0;
+  let confirmedSide = "";
+  let activeGameKey = "";
+  let lastAutoFen = "";
+  let autoScheduled = false;
+
+  function practiceMode() {
+    const path = (location.pathname || "").toLowerCase();
+    return /\/(play\/computer|puzzles?|analysis|study|training)(\/|$)/.test(path);
+  }
+
+  function currentGameKey() { return (location.pathname || "") + (location.search || ""); }
 
   function setRecommendation(title, detail, best = "") {
     $("#recommend").innerHTML = "<strong></strong><div class='best'></div><div class='detail'></div>";
@@ -253,6 +264,7 @@
       const signedScore = result.score > 0 ? "+" + score : score;
       setRecommendation("Suggested study move", "Move: " + result.san + promo + " · Evaluation: " + signedScore + " (from your side to move). This is a lightweight depth-limited search, not full Stockfish.", pieceLabel(symbol) + " " + result.from + " → " + result.to);
       $("#status").textContent = "Finished · " + result.nodes.toLocaleString() + " nodes";
+      lastAutoFen = fen;
     } catch (error) {
       if (runId === analysisRun) setRecommendation("Could not analyze position", error && error.message ? error.message : String(error));
     } finally {
@@ -265,15 +277,26 @@
 
   function syncBoard() {
     try {
+      const gameKey = currentGameKey();
+      if (gameKey !== activeGameKey) { activeGameKey = gameKey; confirmedSide = ""; lastAutoFen = ""; }
       const result = readChessComBoard();
       $("#fen").value = result.fen;
       renderFen(result.fen);
       $("#status").textContent = "Detected " + result.count + " pieces.";
       if (result.fullFen) $("#fen").value = result.fen;
-      $("#your-side").textContent = result.side + " (board orientation)";
+      const detectedSide = result.side === "Unknown" ? "" : result.side;
+      if (detectedSide) confirmedSide = detectedSide;
+      $("#your-side").textContent = confirmedSide || "Needs confirmation";
+      $("#side-confirm").classList.toggle("hidden", !!confirmedSide);
+      const allowed = practiceMode();
+      $("#mode").textContent = allowed ? "Practice / study" : "Auto-analysis off (unsupported or live game)";
       $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — Chess.com did not expose turn data";
       $("#move-count").textContent = result.plyCount === null ? "Unknown" : String(result.plyCount) + " half-moves";
       $("#history").textContent = result.moveText || "Move list not found in the page. Turn may be unavailable.";
+      if (allowed && confirmedSide && result.turn && (result.turn === (confirmedSide === "White" ? "w" : "b")) && result.fen !== lastAutoFen && !analysisPending && !autoScheduled) {
+        autoScheduled = true;
+        setTimeout(() => { autoScheduled = false; if (practiceMode()) runAnalysis(); }, 180);
+      }
     } catch (error) {
       $("#status").textContent = error.message;
     }
@@ -285,13 +308,20 @@
     try { renderFen($("#fen").value); $("#status").textContent = "FEN displayed."; }
     catch (error) { $("#status").textContent = error.message; }
   });
-  $(".close").addEventListener("click", () => panel.classList.add("hidden"));
+  $("#minimize").addEventListener("click", () => panel.classList.add("hidden"));
+  root.querySelectorAll("[data-side]").forEach(button => button.addEventListener("click", () => {
+    confirmedSide = button.getAttribute("data-side");
+    $("#your-side").textContent = confirmedSide + " (confirmed)";
+    $("#side-confirm").classList.add("hidden");
+    lastAutoFen = "";
+    syncBoard();
+  }));
   launcher.addEventListener("click", () => { panel.classList.toggle("hidden"); if (!panel.classList.contains("hidden")) syncBoard(); });
   renderFen(START_FEN);
 
   let refreshQueued = false;
   const observer = new MutationObserver(() => {
-    if (refreshQueued || panel.classList.contains("hidden")) return;
+    if (refreshQueued) return;
     refreshQueued = true;
     setTimeout(() => { refreshQueued = false; syncBoard(); }, 250);
   });
