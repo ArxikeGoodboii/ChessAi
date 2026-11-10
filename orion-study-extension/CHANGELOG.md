@@ -62,3 +62,12 @@
 - Stops assuming an unflipped board means White; asks for manual colour confirmation when orientation is not explicit.
 - Keeps a manually confirmed colour from being overwritten by automatic detection during the game.
 - Broadens analysis availability to Chess.com pages instead of relying on a short list of URL paths.
+
+
+## 1.4.7
+- Removed unreliable turn guessing from move-list DOM counts and stopped defaulting unknown turn to White.
+- Requires exact six-field FEN turn data for automatic analysis.
+- Improved orientation marker search and never assumes an unflipped board means White.
+- Filters invisible pieces and prefers pieces inside the largest visible board.
+- Restricts supported pages to computer games, puzzles, analysis and study routes; online/live routes are not supported.
+- Fixed quiescence handling at the in-check search horizon.
