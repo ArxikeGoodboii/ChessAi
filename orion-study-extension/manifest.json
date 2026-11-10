@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChessAI Study Helper",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "A worker-free Chess.com study helper with board detection and lightweight local move analysis.",
   "permissions": [],
   "host_permissions": [],
