@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.5
+- Only analyze when the confirmed player's colour is the side to move.
+- Manual analysis now waits for the player's turn instead of suggesting the opponent's move.
+- Added Focus mode: a compact floating window that shows only the suggested move, with an expand control.
+
 ## 1.0.0
 - First separate Orion/Firefox extension build.
 - Floating Chess.com study panel.
