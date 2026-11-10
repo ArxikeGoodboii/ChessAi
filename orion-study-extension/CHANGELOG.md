@@ -45,3 +45,9 @@
 - Added a minimize control; monitoring continues while the panel is hidden.
 - Blocks manual and automatic analysis on live or unsupported game pages.
 - Resets the confirmed colour when a new game position is detected.
+
+
+## 1.4.4
+- Stops assuming an unflipped board means White; asks for manual colour confirmation when orientation is not explicit.
+- Keeps a manually confirmed colour from being overwritten by automatic detection during the game.
+- Broadens analysis availability to Chess.com pages instead of relying on a short list of URL paths.
