@@ -37,3 +37,11 @@
 - Fixed whitespace parsing of FEN fields so valid six-field positions are accepted.
 - Corrected the reported completed search depth.
 - Clarified the panel's analysis description.
+
+
+## 1.4.3
+- Added a colour confirmation prompt when board orientation is ambiguous.
+- Added automatic analysis on recognized computer-game, puzzle and study/analysis pages when it is the user's turn and turn data is available.
+- Added a minimize control; monitoring continues while the panel is hidden.
+- Blocks manual and automatic analysis on live or unsupported game pages.
+- Resets the confirmed colour when a new game position is detected.
