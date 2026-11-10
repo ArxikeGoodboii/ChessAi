@@ -195,6 +195,7 @@
   let analysisRun = 0;
   let confirmedSide = "";
   let activeGameKey = "";
+  let lastSeenPlacement = "";
   let lastAutoFen = "";
   let autoScheduled = false;
 
@@ -237,6 +238,10 @@
   }
 
   async function runAnalysis() {
+    if (!practiceMode()) {
+      setRecommendation("Automatic analysis unavailable here", "Open a computer game, puzzle, or study/analysis page. Live and unsupported game pages are intentionally blocked.");
+      return;
+    }
     const fen = $("#fen").value.trim();
     const fields = fen.split(/\s+/);
     if (fields.length !== 6 || !/^[wb]$/.test(fields[1])) {
@@ -280,6 +285,10 @@
       const gameKey = currentGameKey();
       if (gameKey !== activeGameKey) { activeGameKey = gameKey; confirmedSide = ""; lastAutoFen = ""; }
       const result = readChessComBoard();
+      const placementNow = result.fen.split(/\s+/)[0];
+      const startingPlacement = START_FEN.split(" ")[0];
+      if (lastSeenPlacement && lastSeenPlacement !== placementNow && placementNow === startingPlacement) { confirmedSide = ""; lastAutoFen = ""; }
+      lastSeenPlacement = placementNow;
       $("#fen").value = result.fen;
       renderFen(result.fen);
       $("#status").textContent = "Detected " + result.count + " pieces.";
@@ -290,6 +299,7 @@
       $("#side-confirm").classList.toggle("hidden", !!confirmedSide);
       const allowed = practiceMode();
       $("#mode").textContent = allowed ? "Practice / study" : "Auto-analysis off (unsupported or live game)";
+      $("#analyze").disabled = !allowed;
       $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — Chess.com did not expose turn data";
       $("#move-count").textContent = result.plyCount === null ? "Unknown" : String(result.plyCount) + " half-moves";
       $("#history").textContent = result.moveText || "Move list not found in the page. Turn may be unavailable.";
