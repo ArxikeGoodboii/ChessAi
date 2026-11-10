@@ -11,9 +11,9 @@
   css.textContent = `
     :host { all: initial; } * { box-sizing: border-box; }
     .launcher { position:fixed;right:16px;bottom:22px;z-index:2147483647;border:0;border-radius:999px;padding:12px 17px;color:white;background:#242b38;font:700 14px system-ui;box-shadow:0 5px 22px #0005;cursor:pointer; }
-    .panel { position:fixed;right:16px;bottom:76px;z-index:2147483647;width:min(340px,calc(100vw - 24px));max-height:min(76vh,680px);overflow:auto;border:1px solid #394252;border-radius:16px;background:#171c25;color:#f3f5f8;box-shadow:0 12px 40px #0008;font:14px/1.45 system-ui,sans-serif; }
+    .panel { position:fixed;right:16px;bottom:76px;z-index:2147483647;width:min(340px,calc(100vw - 24px));max-height:min(62vh,560px);overflow:auto;border:1px solid #394252;border-radius:16px;background:#171c25;color:#f3f5f8;box-shadow:0 12px 40px #0008;font:14px/1.45 system-ui,sans-serif; }
     .hidden { display:none; } header { display:flex;justify-content:space-between;align-items:center;padding:13px 15px;background:#222a36;border-radius:16px 16px 0 0; }
-    .focus-toggle{border:1px solid #526078;border-radius:8px;padding:6px 9px;background:#273246;color:#fff;font:700 12px system-ui;cursor:pointer}.panel.focus{width:min(220px,calc(100vw - 24px));max-height:150px;bottom:22px;border-radius:12px}.panel.focus header{display:none}.panel.focus .body{padding:10px}.panel.focus .body>*:not(#recommend){display:none!important}.panel.focus #recommend{display:block;margin:0;padding:0;border:0;background:transparent}.panel.focus #recommend strong,.panel.focus #recommend .detail{display:none}.panel.focus #recommend .best{display:block;padding:8px 30px 8px 4px;font-size:18px;font-weight:800;line-height:1.25;color:#fff}.panel.focus .expand-focus{display:block}.expand-focus{display:none;position:absolute;right:8px;top:8px;border:0;border-radius:6px;padding:4px 7px;background:#303b4c;color:#fff;font-size:16px;cursor:pointer}
+    .focus-toggle{border:1px solid #526078;border-radius:8px;padding:6px 9px;background:#273246;color:#fff;font:700 12px system-ui;cursor:pointer}.quick-focus{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:2147483647;border:1px solid #526078;border-radius:999px;padding:8px 12px;background:#222a36;color:#fff;font:700 12px system-ui;box-shadow:0 4px 14px #0007;cursor:pointer}.panel.focus{width:min(172px,calc(100vw - 16px));height:68px;max-height:68px;bottom:18px;right:8px;border-radius:11px;overflow:hidden}.panel.focus header{display:none}.panel.focus .body{padding:6px}.panel.focus .body>*:not(#recommend){display:none!important}.panel.focus #recommend{display:block;margin:0;padding:0;border:0;background:transparent}.panel.focus #recommend strong,.panel.focus #recommend .detail{display:none}.panel.focus #recommend .best{display:block;padding:9px 25px 7px 3px;font-size:16px;font-weight:800;line-height:1.25;color:#fff;white-space:normal}.panel.focus .expand-focus{display:block}.expand-focus{display:none;position:absolute;right:5px;top:5px;border:0;border-radius:6px;padding:3px 6px;background:#303b4c;color:#fff;font-size:15px;cursor:pointer}
     header strong {font-size:15px}.close{border:0;color:#dce2ec;background:transparent;font-size:22px;cursor:pointer}.side-choice{border:1px solid #526078;border-radius:8px;padding:7px 11px;background:#273246;color:#fff;font-weight:700;cursor:pointer}.muted{color:#aeb9c9;font-size:12px}.body{padding:14px}
     .hint{margin:0 0 10px;color:#b7c0ce;font-size:12px}label{display:block;margin:9px 0 5px;color:#dce2ec;font-size:12px;font-weight:700}
     textarea{display:block;width:100%;min-height:76px;resize:vertical;border:1px solid #465164;border-radius:9px;padding:9px;background:#0f131a;color:#f3f5f8;font:12px/1.4 ui-monospace,monospace}
@@ -27,7 +27,7 @@
   const panel = document.createElement("section");
   panel.className = "panel hidden";
   panel.innerHTML = `
-    <header><strong>♟ ChessAI · Study Helper</strong><div class="row" style="margin:0"><button class="focus-toggle" id="focus-toggle">Focus</button><button class="close" id="minimize" aria-label="Minimize">—</button></div></header>
+    <header><strong>♟ ChessAI · Study Helper</strong><button class="close" id="minimize" aria-label="Minimize">—</button></header>
     <div class="body">
       <p class="hint">Reads the piece positions from the Chess.com board for study and review.</p>
       <div class="row"><button class="action" id="read">Read Chess.com board</button><span class="status" id="status">Waiting for a chessboard…</span></div>
@@ -47,6 +47,12 @@
   launcher.textContent = "♟ ChessAI Study";
   launcher.type = "button";
   root.append(launcher);
+  const quickFocus = document.createElement("button");
+  quickFocus.className = "quick-focus hidden";
+  quickFocus.type = "button";
+  quickFocus.textContent = "Focus";
+  quickFocus.setAttribute("aria-label", "Toggle compact move window");
+  root.append(quickFocus);
 
   const $ = selector => root.querySelector(selector);
   const pieces = { k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟",K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘",P:"♙" };
@@ -279,7 +285,7 @@
       const promo = result.promotion ? " · promotes to " + pieceLabel(result.promotion) : "";
       const score = (result.score / 100).toFixed(2);
       const signedScore = result.score > 0 ? "+" + score : score;
-      setRecommendation("Suggested study move", "Move: " + result.san + promo + " · Evaluation: " + signedScore + " (from your side to move). This is a lightweight depth-limited search, not full Stockfish.", pieceLabel(symbol) + " " + result.from + " → " + result.to);
+      setRecommendation("Suggested study move", "Move: " + result.san + promo + " · Evaluation: " + signedScore + " · Search depth: " + result.depth + " · Nodes: " + result.nodes.toLocaleString() + ". This is a local search, not full Stockfish.", pieceLabel(symbol) + " " + result.from + " → " + result.to);
       $("#status").textContent = "Finished · " + result.nodes.toLocaleString() + " nodes";
       lastAutoFen = fen;
     } catch (error) {
@@ -330,9 +336,9 @@
     try { renderFen($("#fen").value); $("#status").textContent = "FEN displayed."; }
     catch (error) { $("#status").textContent = error.message; }
   });
-  $("#minimize").addEventListener("click", () => panel.classList.add("hidden"));
-  $("#focus-toggle").addEventListener("click", () => panel.classList.toggle("focus"));
-  root.addEventListener("click", event => { if (event.target && event.target.closest && event.target.closest("#expand-focus")) panel.classList.remove("focus"); });
+  $("#minimize").addEventListener("click", () => { panel.classList.add("hidden"); quickFocus.classList.add("hidden"); });
+  quickFocus.addEventListener("click", () => { panel.classList.toggle("focus"); quickFocus.textContent = panel.classList.contains("focus") ? "Expand" : "Focus"; });
+  root.addEventListener("click", event => { if (event.target && event.target.closest && event.target.closest("#expand-focus")) { panel.classList.remove("focus"); quickFocus.textContent = "Focus"; } });
   root.querySelectorAll("[data-side]").forEach(button => button.addEventListener("click", () => {
     confirmedSide = button.getAttribute("data-side");
     sideManuallyConfirmed = true;
@@ -341,7 +347,7 @@
     lastAutoFen = "";
     syncBoard();
   }));
-  launcher.addEventListener("click", () => { panel.classList.toggle("hidden"); if (!panel.classList.contains("hidden")) syncBoard(); });
+  launcher.addEventListener("click", () => { panel.classList.toggle("hidden"); if (!panel.classList.contains("hidden")) { quickFocus.classList.remove("hidden"); syncBoard(); } else quickFocus.classList.add("hidden"); });
   renderFen(START_FEN);
 
   let refreshQueued = false;
