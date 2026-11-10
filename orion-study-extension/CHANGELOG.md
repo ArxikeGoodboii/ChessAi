@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.6
+- Reduced the compact move window to a small 172px-wide, 68px-high panel.
+- Added an always-accessible Focus/Expand button at the top of the screen while the panel is open.
+- Improved move search with iterative deepening up to depth 5, capture/check ordering, and quiescence search to examine tactical sequences more carefully.
+- Keeps the last fully completed search depth if a deeper search reaches its node budget.
+
 ## 1.4.5
 - Only analyze when the confirmed player's colour is the side to move.
 - Manual analysis now waits for the player's turn instead of suggesting the opponent's move.
