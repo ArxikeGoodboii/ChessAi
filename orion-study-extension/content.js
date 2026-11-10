@@ -163,8 +163,28 @@
       if (empty) row += empty;
       rows.push(row);
     }
-    const board = boardHosts.find(el => el.classList.contains("flipped"));
-    const side = board ? "Black" : "White";
+    // Ignore hidden board elements left behind when Chess.com switches games.
+    // The flipped marker may be attached to the board host or one of its wrappers.
+    const visibleBoards = boardHosts.filter(el => {
+      try {
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && el.getClientRects().length > 0;
+      } catch { return false; }
+    });
+    const activeBoards = visibleBoards.length ? visibleBoards : [];
+    const orientations = activeBoards.map(el => {
+      let node = el;
+      let depth = 0;
+      while (node && depth < 6) {
+        if (node.classList && node.classList.contains("flipped")) return "Black";
+        node = node.parentElement;
+        depth++;
+      }
+      // On a visible Chess.com board, absence of the flipped marker means White.
+      return "White";
+    });
+    const uniqueOrientations = [...new Set(orientations)];
+    const side = uniqueOrientations.length === 1 ? uniqueOrientations[0] : "Unknown";
     const meta = readGameMetadata(roots, boardHosts);
     const placement = rows.join("/");
     const fen = meta.fullFen || (placement + " " + (meta.turn || "w") + " - - 0 1");
