@@ -263,7 +263,7 @@
     const yourTurn = confirmedSide === "White" ? "w" : "b";
     if (fields[1] !== yourTurn) {
       const turnName = fields[1] === "w" ? "White" : "Black";
-      setRecommendation("Waiting for your turn", turnName + " to move. ChessAI will suggest a move when " + confirmedSide + " is to move.", "Waiting for " + confirmedSide + " to move");
+      setRecommendation("Waiting for your turn", turnName + " to move. ChessAI will suggest a move when " + confirmedSide + " is to move.", "Waiting for " + turnName + " to move");
       return;
     }
     if (!globalThis.ChessAIEngine || typeof globalThis.ChessAIEngine.analyzeFen !== "function") {
