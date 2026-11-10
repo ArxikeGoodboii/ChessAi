@@ -113,16 +113,14 @@
         }
       } catch {}
     }
-    if (plyCount === null && moveText) {
-      const san = moveText.match(/(?:^|\s)(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?|\.{3})(?=\s|$)/g);
-      if (san) plyCount = san.length;
-    }
+    // Never infer whose turn it is from DOM node counts: Chess.com can render
+    // duplicate/hidden move nodes. Only trust an exact six-field FEN.
     let turn = "";
     if (fullFen) {
       const fields = fullFen.split(/\s+/);
-      if (fields[1] === "w" || fields[1] === "b") turn = fields[1];
+      if (fields.length === 6 && (fields[1] === "w" || fields[1] === "b")) turn = fields[1];
+      else fullFen = "";
     }
-    if (!turn && plyCount !== null) turn = plyCount % 2 === 0 ? "w" : "b";
     return { fullFen, moveText, plyCount, turn };
   }
 
@@ -142,8 +140,30 @@
         boardHosts.push(...r.querySelectorAll("wc-chess-board, chess-board"));
       } catch {}
     }
+    // Prefer visible pieces inside the largest visible board to avoid mixing
+    // hidden/previous boards and small board previews into the position.
+    const visibleCandidates = candidates.filter(el => {
+      try { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && el.getClientRects().length > 0; }
+      catch { return false; }
+    });
+    const visibleHosts = boardHosts.filter(el => {
+      try { const r = el.getBoundingClientRect(); return r.width > 80 && r.height > 80 && el.getClientRects().length > 0; }
+      catch { return false; }
+    }).sort((a,b) => {
+      const ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
+      return (br.width*br.height)-(ar.width*ar.height);
+    });
+    let selectedCandidates = visibleCandidates;
+    if (visibleHosts.length) {
+      const boardRect = visibleHosts[0].getBoundingClientRect();
+      const within = visibleCandidates.filter(el => {
+        const r=el.getBoundingClientRect(), x=r.left+r.width/2, y=r.top+r.height/2;
+        return x>=boardRect.left-2 && x<=boardRect.right+2 && y>=boardRect.top-2 && y<=boardRect.bottom+2;
+      });
+      if (within.length >= 2) selectedCandidates = within;
+    }
     const found = new Map();
-    for (const el of new Set(candidates)) {
+    for (const el of new Set(selectedCandidates)) {
       const classes = typeof el.className === "string" ? el.className : el.getAttribute("class") || "";
       const tokens = el.classList ? Array.from(el.classList) : classes.trim().split(/\s+/);
       const pieceMatch = tokens.find(t => /^[wb][kqrbnp]$/i.test(t));
@@ -178,23 +198,29 @@
         return rect.width > 0 && rect.height > 0 && el.getClientRects().length > 0;
       } catch { return false; }
     });
-    const activeBoards = visibleBoards.length ? visibleBoards : [];
+    const activeBoards = visibleBoards.length ? visibleBoards.slice().sort((a,b) => {
+      const ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
+      return (br.width*br.height)-(ar.width*ar.height);
+    }).slice(0,1) : [];
     const orientations = activeBoards.map(el => {
       let node = el;
       let depth = 0;
-      while (node && depth < 6) {
+      while (node && depth < 14) {
         if (node.classList && node.classList.contains("flipped")) return "Black";
+        const orientation = (node.getAttribute && (node.getAttribute("data-orientation") || node.getAttribute("data-board-orientation") || "")).toLowerCase();
+        if (orientation === "black" || orientation === "black-bottom") return "Black";
+        if (orientation === "white" || orientation === "white-bottom") return "White";
         node = node.parentElement;
         depth++;
       }
-      // On a visible Chess.com board, absence of the flipped marker means White.
+      // No marker is not proof that the user is White.
       return "Unknown";
     });
     const uniqueOrientations = [...new Set(orientations)];
     const side = uniqueOrientations.length === 1 ? uniqueOrientations[0] : "Unknown";
     const meta = readGameMetadata(roots, boardHosts);
     const placement = rows.join("/");
-    const fen = meta.fullFen || (placement + " " + (meta.turn || "w") + " - - 0 1");
+    const fen = meta.fullFen || (placement + " ? - - 0 1");
     return { fen, side, count: found.size, turn: meta.turn, plyCount: meta.plyCount, moveText: meta.moveText, fullFen: !!meta.fullFen };
   }
 
@@ -208,7 +234,9 @@
   let autoScheduled = false;
 
   function supportedChessPage() {
-    return location.hostname === "www.chess.com" || location.hostname === "chess.com";
+    if (location.hostname !== "www.chess.com" && location.hostname !== "chess.com") return false;
+    // Practice/training pages only; do not run on live/online games.
+    return /^\/(play\/computer|puzzles|analysis|study)(\/|$)/i.test(location.pathname || "/");
   }
 
   function currentGameKey() { return (location.pathname || "") + (location.search || ""); }
@@ -309,16 +337,16 @@
       lastSeenPlacement = placementNow;
       $("#fen").value = result.fen;
       renderFen(result.fen);
-      $("#status").textContent = "Detected " + result.count + " pieces.";
+      $("#status").textContent = "Detected " + result.count + " pieces." + (result.turn ? "" : " Turn unavailable; automatic analysis paused.");
       if (result.fullFen) $("#fen").value = result.fen;
       const detectedSide = result.side === "Unknown" ? "" : result.side;
       if (detectedSide && !sideManuallyConfirmed) confirmedSide = detectedSide;
       $("#your-side").textContent = confirmedSide || "Needs confirmation";
       $("#side-confirm").classList.toggle("hidden", !!confirmedSide);
       const allowed = supportedChessPage();
-      $("#mode").textContent = allowed ? "Chess.com page" : "Unsupported page";
+      $("#mode").textContent = allowed ? "Practice / study page" : "Practice pages only";
       $("#analyze").disabled = !allowed;
-      $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — Chess.com did not expose turn data";
+      $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — no reliable FEN turn data";
       $("#move-count").textContent = result.plyCount === null ? "Unknown" : String(result.plyCount) + " half-moves";
       $("#history").textContent = result.moveText || "Move list not found in the page. Turn may be unavailable.";
       if (allowed && confirmedSide && result.turn && (result.turn === (confirmedSide === "White" ? "w" : "b")) && result.fen !== lastAutoFen && !analysisPending && !autoScheduled) {
