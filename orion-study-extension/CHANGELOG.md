@@ -9,6 +9,7 @@
 - Preserves manually edited FEN while polling the live board and reads orientation markers across shadow-DOM boundaries.
 - Removes misleading move counts derived from rendered DOM node totals.
 - Adds automated engine smoke tests and runs them before packaging.
+- Corrects minimizing-side quiescence bounds and tests a tactical queen-capture position.
 - Documents the manual fallback when a complete turn field is unavailable.
 
 
