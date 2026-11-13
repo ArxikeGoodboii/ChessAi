@@ -25,6 +25,14 @@ const blackStartFen = START_FEN.replace(" w ", " b ");
 const blackStart = await analyzeFen(blackStartFen);
 applyAndValidate(blackStartFen, blackStart, "b");
 
+// A hanging queen must be captured rather than allowing it to take the rook.
+// This forces the search to evaluate captures on the minimizing reply.
+const tacticalFen = "4k3/8/8/8/4q3/8/4R3/4K3 w - - 0 1";
+const tactical = await analyzeFen(tacticalFen);
+assert.equal(tactical.from, "e2");
+assert.equal(tactical.to, "e4");
+applyAndValidate(tacticalFen, tactical, "w");
+
 const cancelled = await analyzeFen(START_FEN, () => {}, () => true);
 assert.equal(cancelled.cancelled, true, "obsolete searches must stop between depths");
 
