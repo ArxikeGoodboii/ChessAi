@@ -6,6 +6,7 @@
 - Rechecks the live board before displaying automatic or assumed-turn results.
 - Expands DOM observation and adds a low-frequency page-state reconciliation check.
 - Prioritizes the largest visible board when reading FEN metadata.
+- Preserves manually edited FEN while polling the live board and reads orientation markers across shadow-DOM boundaries.
 - Removes misleading move counts derived from rendered DOM node totals.
 - Adds automated engine smoke tests and runs them before packaging.
 - Documents the manual fallback when a complete turn field is unavailable.
