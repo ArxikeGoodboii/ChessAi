@@ -24,7 +24,7 @@ Automatic analysis is restricted to computer-game, puzzle, analysis and study ro
 ## Manual analysis when turn data is missing
 When the FEN box contains a visible board placement followed by an unknown turn marker (?), select your colour and press Analyze now. The extension assumes your selected colour is to move and labels the result accordingly. Since the page did not provide complete metadata, castling and en-passant rights are treated as unknown and the estimate may differ from the actual game position.
 
-For the most reliable analysis, use a complete six-field FEN. You can also edit the FEN box manually; the chess rules library validates it before searching.
+For the most reliable analysis, use a complete six-field FEN. You can also edit the FEN box manually; the chess rules library validates it before searching. The extension preserves your edited FEN while you type; press Read Chess.com board when you want to replace it with the live board position.
 
 ## Engine limitations
 The engine runs locally in the page and does not require a server or account. It uses iterative deepening, alpha-beta search, move ordering and quiescence search with a bounded node budget. It is not Stockfish and is much weaker than a full modern chess engine; it can miss tactics or deeper plans. Search runs on the page's JavaScript thread and may briefly make the page less responsive. When the board changes, the extension discards the old result and stops before beginning another search depth.
