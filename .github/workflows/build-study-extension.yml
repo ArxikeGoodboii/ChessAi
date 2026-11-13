@@ -28,6 +28,7 @@ jobs:
           test -f orion-study-extension/CHANGELOG.md
           python -m json.tool orion-study-extension/manifest.json > /dev/null
           node --check orion-study-extension/content.js
+          node --check orion-study-extension/engine.test.mjs
 
       - name: Install test and build dependencies
         run: |
@@ -49,6 +50,8 @@ jobs:
           grep -q 'lastObservedFen' orion-study-extension/content.js
           grep -q 'runAnalysis(true)' orion-study-extension/content.js
           grep -q 'result.cancelled' orion-study-extension/content.js
+          grep -q 'fenInputDirty' orion-study-extension/content.js
+          grep -q 'if (standPat <= alpha)' orion-study-extension/engine.js
 
       - name: Package extension
         run: |
