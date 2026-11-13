@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.8
+- Discards in-progress suggestions when the detected board position changes.
+- Cancels obsolete searches between iterative-deepening depths.
+- Rechecks the live board before displaying automatic or assumed-turn results.
+- Expands DOM observation and adds a low-frequency page-state reconciliation check.
+- Prioritizes the largest visible board when reading FEN metadata.
+- Removes misleading move counts derived from rendered DOM node totals.
+- Adds automated engine smoke tests and runs them before packaging.
+- Documents the manual fallback when a complete turn field is unavailable.
+
+
 ## 1.4.6
 - Reduced the compact move window to a small 172px-wide, 68px-high panel.
 - Added an always-accessible Focus/Expand button at the top of the screen while the panel is open.
