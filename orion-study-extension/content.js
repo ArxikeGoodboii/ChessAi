@@ -299,8 +299,8 @@
         setRecommendation("Turn data unavailable", "Chess.com has not exposed a complete FEN. Select your colour, then use Analyze now for a manual study estimate.");
         return;
       }
-      const assumedTurn = confirmedSide === "White" ? "w" : "b";
-      fen = placement + " " + assumedTurn + " - - 0 1";
+      const assumedColorTurn = confirmedSide === "White" ? "w" : "b";
+      fen = placement + " " + assumedColorTurn + " - - 0 1";
       fields = fen.split(/\s+/);
       assumedTurn = true;
       $("#status").textContent = "Manual analysis · assuming " + confirmedSide + " to move; castling/en-passant rights are unknown.";
