@@ -226,7 +226,7 @@
     const meta = readGameMetadata(roots, boardHosts);
     const placement = rows.join("/");
     const fen = meta.fullFen || (placement + " ? - - 0 1");
-    return { fen, side, count: found.size, turn: meta.turn, plyCount: meta.plyCount, moveText: meta.moveText, fullFen: !!meta.fullFen };
+    return { fen, side, count: found.size, turn: meta.turn, moveText: meta.moveText, fullFen: !!meta.fullFen };
   }
 
   let analysisPending = false;
