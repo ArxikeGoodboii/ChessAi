@@ -121,7 +121,7 @@ function search(chess, depth, alpha, beta, rootColor, state, ply) {
   return best;
 }
 
-export async function analyzeFen(fen, onProgress = () => {}) {
+export async function analyzeFen(fen, onProgress = () => {}, shouldCancel = () => false) {
   const chess = new Chess(fen);
   const rootColor = chess.turn();
   const legal = moveOrder(chess.moves({ verbose: true }));
@@ -133,7 +133,10 @@ export async function analyzeFen(fen, onProgress = () => {}) {
   let completedDepth = 0;
 
   for (let depth = 1; depth <= MAX_DEPTH; depth++) {
+    // Yield between completed depths so the page can react to a board change
+    // or navigation and discard work for an obsolete position.
     await new Promise(resolve => setTimeout(resolve, 25));
+    if (shouldCancel()) return { cancelled: true };
     const state = { nodes: 0 };
     let depthBest = null;
     let depthScore = -Infinity;
