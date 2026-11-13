@@ -237,6 +237,7 @@
   let lastSeenPlacement = "";
   let lastObservedFen = "";
   let lastAutoFen = "";
+  let lastDisplaySide = "";
   let fenInputDirty = false;
   let autoScheduled = false;
 
@@ -389,6 +390,7 @@
         lastAutoFen = "";
         lastObservedFen = "";
         lastSeenPlacement = "";
+        lastDisplaySide = "";
         fenInputDirty = false;
       }
       const result = readChessComBoard();
@@ -402,13 +404,20 @@
       lastObservedFen = result.fen;
       const placementNow = result.fen.split(/\s+/)[0];
       const startingPlacement = START_FEN.split(" ")[0];
-      if (lastSeenPlacement && lastSeenPlacement !== placementNow && placementNow === startingPlacement) { confirmedSide = ""; sideManuallyConfirmed = false; lastAutoFen = ""; }
+      if (lastSeenPlacement && lastSeenPlacement !== placementNow && placementNow === startingPlacement) {
+        confirmedSide = "";
+        sideManuallyConfirmed = false;
+        lastAutoFen = "";
+        lastDisplaySide = "";
+      }
       lastSeenPlacement = placementNow;
       if (!fenInputDirty) $("#fen").value = result.fen;
       renderFen(result.fen);
       $("#status").textContent = "Detected " + result.count + " pieces." + (result.turn ? "" : " Turn unavailable; automatic analysis paused.");
       const detectedSide = result.side === "Unknown" ? "" : result.side;
       if (detectedSide && !sideManuallyConfirmed) confirmedSide = detectedSide;
+      const sideChanged = confirmedSide !== lastDisplaySide;
+      lastDisplaySide = confirmedSide;
       $("#your-side").textContent = confirmedSide || "Needs confirmation";
       $("#side-confirm").classList.toggle("hidden", !!confirmedSide);
       const allowed = supportedChessPage();
@@ -416,7 +425,7 @@
       // Never leave a recommendation from the previous position on screen.
       // Only update this message on a genuinely new/first-read position so it
       // cannot overwrite active search progress or a completed manual result.
-      if ((firstObservedPosition || positionChanged) && !analysisPending) {
+      if ((firstObservedPosition || positionChanged || sideChanged) && !analysisPending) {
         if (!confirmedSide) {
           setRecommendation("Choose your colour", "Select White or Black before requesting a move.");
         } else if (!result.turn) {
