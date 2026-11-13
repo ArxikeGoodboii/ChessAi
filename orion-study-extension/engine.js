@@ -51,9 +51,18 @@ function quiescence(chess, alpha, beta, rootColor, state, ply, qply) {
 
   const inCheck = chess.isCheck();
   const standPat = evaluate(chess, rootColor);
+  const maximizing = chess.turn() === rootColor;
   if (!inCheck) {
-    if (standPat >= beta) return beta;
-    if (standPat > alpha) alpha = standPat;
+    // Stand-pat is a lower bound at maximizing nodes and an upper bound at
+    // minimizing nodes. Updating the wrong side of the window can prune good
+    // opponent replies and corrupt the evaluation.
+    if (maximizing) {
+      if (standPat >= beta) return beta;
+      if (standPat > alpha) alpha = standPat;
+    } else {
+      if (standPat <= alpha) return alpha;
+      if (standPat < beta) beta = standPat;
+    }
     if (qply >= QUIESCENCE_DEPTH) return standPat;
   }
 
@@ -75,7 +84,6 @@ function quiescence(chess, alpha, beta, rootColor, state, ply, qply) {
   moves = moveOrder(moves);
   if (!moves.length) return inCheck ? (chess.turn() === rootColor ? -MATE + ply : MATE - ply) : standPat;
 
-  const maximizing = chess.turn() === rootColor;
   let best = inCheck ? (maximizing ? -Infinity : Infinity) : standPat;
   for (const move of moves) {
     chess.move({ from: move.from, to: move.to, promotion: move.promotion });
