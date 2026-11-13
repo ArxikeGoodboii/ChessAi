@@ -211,7 +211,11 @@
         const orientation = (node.getAttribute && (node.getAttribute("data-orientation") || node.getAttribute("data-board-orientation") || "")).toLowerCase();
         if (orientation === "black" || orientation === "black-bottom") return "Black";
         if (orientation === "white" || orientation === "white-bottom") return "White";
-        node = node.parentElement;
+        if (node.parentElement) node = node.parentElement;
+        else {
+          const rootNode = node.getRootNode && node.getRootNode();
+          node = rootNode && rootNode.host ? rootNode.host : null;
+        }
         depth++;
       }
       // No marker is not proof that the user is White.
@@ -233,6 +237,7 @@
   let lastSeenPlacement = "";
   let lastObservedFen = "";
   let lastAutoFen = "";
+  let fenInputDirty = false;
   let autoScheduled = false;
 
   function supportedChessPage() {
@@ -287,7 +292,7 @@
       setRecommendation("Chess.com page required", "Open a supported Chess.com practice page and read the board first.");
       return;
     }
-    let fen = $("#fen").value.trim();
+    let fen = automatic ? lastObservedFen : $("#fen").value.trim();
     let fields = fen.split(/\s+/);
     let assumedTurn = false;
     if (fields.length !== 6 || !/^[wb]$/.test(fields[1])) {
@@ -384,6 +389,7 @@
         lastAutoFen = "";
         lastObservedFen = "";
         lastSeenPlacement = "";
+        fenInputDirty = false;
       }
       const result = readChessComBoard();
       if (lastObservedFen && lastObservedFen !== result.fen) {
@@ -395,10 +401,9 @@
       const startingPlacement = START_FEN.split(" ")[0];
       if (lastSeenPlacement && lastSeenPlacement !== placementNow && placementNow === startingPlacement) { confirmedSide = ""; sideManuallyConfirmed = false; lastAutoFen = ""; }
       lastSeenPlacement = placementNow;
-      $("#fen").value = result.fen;
+      if (!fenInputDirty) $("#fen").value = result.fen;
       renderFen(result.fen);
       $("#status").textContent = "Detected " + result.count + " pieces." + (result.turn ? "" : " Turn unavailable; automatic analysis paused.");
-      if (result.fullFen) $("#fen").value = result.fen;
       const detectedSide = result.side === "Unknown" ? "" : result.side;
       if (detectedSide && !sideManuallyConfirmed) confirmedSide = detectedSide;
       $("#your-side").textContent = confirmedSide || "Needs confirmation";
@@ -418,7 +423,8 @@
     }
   }
 
-  $("#read").addEventListener("click", syncBoard);
+  $("#fen").addEventListener("input", () => { fenInputDirty = true; });
+  $("#read").addEventListener("click", () => { fenInputDirty = false; syncBoard(); });
   $("#analyze").addEventListener("click", runAnalysis);
   $("#show").addEventListener("click", () => {
     try { renderFen($("#fen").value); $("#status").textContent = "FEN displayed."; }
