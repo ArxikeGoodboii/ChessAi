@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ChessAI Study Helper",
-  "version": "1.4.7",
-  "description": "A worker-free Chess.com helper with manual colour confirmation and automatic lightweight move analysis.",
+  "version": "1.4.8",
+  "description": "A worker-free Chess.com study helper with improved position tracking and automatic lightweight move analysis.",
   "permissions": [],
   "host_permissions": [],
   "content_scripts": [
