@@ -392,7 +392,10 @@
         fenInputDirty = false;
       }
       const result = readChessComBoard();
-      if (lastObservedFen && lastObservedFen !== result.fen) {
+      const previousObservedFen = lastObservedFen;
+      const firstObservedPosition = !previousObservedFen;
+      const positionChanged = !!previousObservedFen && previousObservedFen !== result.fen;
+      if (positionChanged) {
         invalidateRunningAnalysis();
         lastAutoFen = "";
       }
@@ -409,8 +412,25 @@
       $("#your-side").textContent = confirmedSide || "Needs confirmation";
       $("#side-confirm").classList.toggle("hidden", !!confirmedSide);
       const allowed = supportedChessPage();
+
+      // Never leave a recommendation from the previous position on screen.
+      // Only update this message on a genuinely new/first-read position so it
+      // cannot overwrite active search progress or a completed manual result.
+      if ((firstObservedPosition || positionChanged) && !analysisPending) {
+        if (!confirmedSide) {
+          setRecommendation("Choose your colour", "Select White or Black before requesting a move.");
+        } else if (!result.turn) {
+          setRecommendation("Turn data unavailable", "Automatic analysis is paused. Select your colour and use Analyze now for a manual estimate.");
+        } else if (result.turn !== (confirmedSide === "White" ? "w" : "b")) {
+          const turnName = result.turn === "w" ? "White" : "Black";
+          setRecommendation("Waiting for your turn", turnName + " to move. ChessAI will analyse when " + confirmedSide + " is to move.");
+        } else {
+          setRecommendation("New position detected", "Preparing a local study analysis…");
+        }
+      }
+
       $("#mode").textContent = allowed ? "Practice / study page" : "Practice pages only";
-      $("#analyze").disabled = !allowed;
+      $("#analyze").disabled = !allowed || analysisPending;
       $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — no reliable FEN turn data";
       $("#move-count").textContent = "Unavailable (not safely exposed)";
       $("#history").textContent = result.moveText || "Move list not found in the page. Turn may be unavailable.";
