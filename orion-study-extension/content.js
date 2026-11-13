@@ -413,7 +413,9 @@
       lastSeenPlacement = placementNow;
       if (!fenInputDirty) $("#fen").value = result.fen;
       renderFen(result.fen);
-      $("#status").textContent = "Detected " + result.count + " pieces." + (result.turn ? "" : " Turn unavailable; automatic analysis paused.");
+      if (!analysisPending && (firstObservedPosition || positionChanged || sideChanged)) {
+        $("#status").textContent = "Detected " + result.count + " pieces." + (result.turn ? "" : " Turn unavailable; automatic analysis paused.");
+      }
       const detectedSide = result.side === "Unknown" ? "" : result.side;
       if (detectedSide && !sideManuallyConfirmed) confirmedSide = detectedSide;
       const sideChanged = confirmedSide !== lastDisplaySide;
