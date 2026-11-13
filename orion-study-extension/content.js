@@ -85,7 +85,16 @@
 
   function readGameMetadata(roots, boardHosts) {
     let fullFen = "";
-    for (const el of boardHosts) {
+    const prioritizedHosts = boardHosts.slice().sort((a,b) => {
+      const area = el => {
+        try {
+          const rect = el.getBoundingClientRect();
+          return rect.width > 80 && rect.height > 80 ? rect.width * rect.height : 0;
+        } catch { return 0; }
+      };
+      return area(b) - area(a);
+    });
+    for (const el of prioritizedHosts) {
       const values = [el.getAttribute("fen"), el.getAttribute("data-fen"), el.getAttribute("data-position"), el.fen, el.position];
       for (const value of values) {
         if (typeof value === "string" && value.trim().split(/\s+/).length >= 4) {
@@ -96,7 +105,6 @@
       if (fullFen) break;
     }
     let moveText = "";
-    let plyCount = null;
     const selectors = ["wc-simple-move-list", "wc-move-list", ".move-list", ".move-list-wrapper", "[data-cy='move-list']"];
     for (const r of roots) {
       for (const selector of selectors) {
@@ -105,13 +113,6 @@
           if (el && el.innerText && el.innerText.trim().length > moveText.length) moveText = el.innerText.trim();
         } catch {}
       }
-      try {
-        const nodes = r.querySelectorAll("[data-ply], .move-text-component, .node");
-        if (nodes.length) {
-          const usable = Array.from(nodes).filter(n => (n.innerText || n.textContent || "").trim());
-          if (usable.length) plyCount = usable.length;
-        }
-      } catch {}
     }
     // Never infer whose turn it is from DOM node counts: Chess.com can render
     // duplicate/hidden move nodes. Only trust an exact six-field FEN.
@@ -121,7 +122,7 @@
       if (fields.length === 6 && (fields[1] === "w" || fields[1] === "b")) turn = fields[1];
       else fullFen = "";
     }
-    return { fullFen, moveText, plyCount, turn };
+    return { fullFen, moveText, turn };
   }
 
   function readChessComBoard() {
@@ -230,6 +231,7 @@
   let sideManuallyConfirmed = false;
   let activeGameKey = "";
   let lastSeenPlacement = "";
+  let lastObservedFen = "";
   let lastAutoFen = "";
   let autoScheduled = false;
 
@@ -240,6 +242,14 @@
   }
 
   function currentGameKey() { return (location.pathname || "") + (location.search || ""); }
+
+  function invalidateRunningAnalysis() {
+    if (!analysisPending) return;
+    analysisRun++;
+    analysisPending = false;
+    $("#analyze").disabled = !supportedChessPage();
+    $("#status").textContent = "Position changed — previous analysis discarded.";
+  }
 
   function setRecommendation(title, detail, best = "") {
     $("#recommend").innerHTML = "<strong></strong><div class='best'></div><div class='detail'></div><button class='expand-focus' id='expand-focus' aria-label='Expand panel'>↗</button>";
@@ -279,6 +289,7 @@
     }
     let fen = $("#fen").value.trim();
     let fields = fen.split(/\s+/);
+    let assumedTurn = false;
     if (fields.length !== 6 || !/^[wb]$/.test(fields[1])) {
       // Manual analysis may use the visible piece placement and the user's
       // selected colour as an explicit turn assumption. Never use this for
@@ -291,6 +302,7 @@
       const assumedTurn = confirmedSide === "White" ? "w" : "b";
       fen = placement + " " + assumedTurn + " - - 0 1";
       fields = fen.split(/\s+/);
+      assumedTurn = true;
       $("#status").textContent = "Manual analysis · assuming " + confirmedSide + " to move; castling/en-passant rights are unknown.";
     }
     if (!confirmedSide) {
@@ -314,16 +326,40 @@
     $("#status").textContent = "Preparing local JavaScript analysis…";
     setRecommendation("Analyzing study position…", "This runs directly in the page without Web Workers. The page may pause briefly while it searches.");
     try {
-      const result = await globalThis.ChessAIEngine.analyzeFen(fen, progress => {
-        if (runId !== analysisRun) return;
-        $("#status").textContent = "Searching · depth " + progress.depth + " · " + progress.nodes.toLocaleString() + " nodes";
-      });
-      if (runId !== analysisRun) return;
+      const result = await globalThis.ChessAIEngine.analyzeFen(
+        fen,
+        progress => {
+          if (runId !== analysisRun) return;
+          $("#status").textContent = "Searching · depth " + progress.depth + " · " + progress.nodes.toLocaleString() + " nodes";
+        },
+        () => runId !== analysisRun
+      );
+      if (runId !== analysisRun || result.cancelled) return;
+
+      // Before showing a result, make sure the live board still matches the
+      // position that was searched. Manual FEN entry remains supported.
+      if (automatic || assumedTurn) {
+        try {
+          const live = readChessComBoard();
+          const livePlacement = live.fen.split(/\s+/)[0];
+          const expectedPlacement = fen.split(/\s+/)[0];
+          if ((automatic && (!live.fullFen || live.fen !== fen)) ||
+              (assumedTurn && livePlacement !== expectedPlacement)) {
+            setTimeout(syncBoard, 0);
+            return;
+          }
+        } catch {
+          setTimeout(syncBoard, 0);
+          return;
+        }
+      }
+
       const symbol = pieceAt(fen, result.from);
       const promo = result.promotion ? " · promotes to " + pieceLabel(result.promotion) : "";
       const score = (result.score / 100).toFixed(2);
       const signedScore = result.score > 0 ? "+" + score : score;
-      setRecommendation("Suggested study move", "Move: " + result.san + promo + " · Evaluation: " + signedScore + " · Search depth: " + result.depth + " · Nodes: " + result.nodes.toLocaleString() + ". This is a local search, not full Stockfish.", pieceLabel(symbol) + " " + result.from + " → " + result.to);
+      const assumption = assumedTurn ? " Manual estimate: assumes " + confirmedSide + " to move; castling and en-passant rights are unknown." : "";
+      setRecommendation("Suggested study move", "Move: " + result.san + promo + " · Evaluation: " + signedScore + " · Search depth: " + result.depth + " · Nodes: " + result.nodes.toLocaleString() + ". This is a local search, not full Stockfish." + assumption, pieceLabel(symbol) + " " + result.from + " → " + result.to);
       $("#status").textContent = "Finished · " + result.nodes.toLocaleString() + " nodes";
       lastAutoFen = fen;
     } catch (error) {
@@ -331,7 +367,8 @@
     } finally {
       if (runId === analysisRun) {
         analysisPending = false;
-        $("#analyze").disabled = false;
+        $("#analyze").disabled = !supportedChessPage();
+        setTimeout(() => { if (supportedChessPage()) syncBoard(); }, 120);
       }
     }
   }
@@ -339,8 +376,21 @@
   function syncBoard() {
     try {
       const gameKey = currentGameKey();
-      if (gameKey !== activeGameKey) { activeGameKey = gameKey; confirmedSide = ""; sideManuallyConfirmed = false; lastAutoFen = ""; }
+      if (gameKey !== activeGameKey) {
+        invalidateRunningAnalysis();
+        activeGameKey = gameKey;
+        confirmedSide = "";
+        sideManuallyConfirmed = false;
+        lastAutoFen = "";
+        lastObservedFen = "";
+        lastSeenPlacement = "";
+      }
       const result = readChessComBoard();
+      if (lastObservedFen && lastObservedFen !== result.fen) {
+        invalidateRunningAnalysis();
+        lastAutoFen = "";
+      }
+      lastObservedFen = result.fen;
       const placementNow = result.fen.split(/\s+/)[0];
       const startingPlacement = START_FEN.split(" ")[0];
       if (lastSeenPlacement && lastSeenPlacement !== placementNow && placementNow === startingPlacement) { confirmedSide = ""; sideManuallyConfirmed = false; lastAutoFen = ""; }
@@ -357,7 +407,7 @@
       $("#mode").textContent = allowed ? "Practice / study page" : "Practice pages only";
       $("#analyze").disabled = !allowed;
       $("#turn").textContent = result.turn ? (result.turn === "w" ? "White" : "Black") : "Unknown — no reliable FEN turn data";
-      $("#move-count").textContent = result.plyCount === null ? "Unknown" : String(result.plyCount) + " half-moves";
+      $("#move-count").textContent = "Unavailable (not safely exposed)";
       $("#history").textContent = result.moveText || "Move list not found in the page. Turn may be unavailable.";
       if (allowed && confirmedSide && result.turn && (result.turn === (confirmedSide === "White" ? "w" : "b")) && result.fen !== lastAutoFen && !analysisPending && !autoScheduled) {
         autoScheduled = true;
@@ -394,5 +444,17 @@
     refreshQueued = true;
     setTimeout(() => { refreshQueued = false; syncBoard(); }, 250);
   });
-  observer.observe(document.documentElement, {subtree:true,childList:true,attributes:true,attributeFilter:["class"]});
+  observer.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["class", "style", "fen", "data-fen", "data-position", "data-orientation", "data-board-orientation"]
+  });
+
+  // A low-frequency reconciliation catches board/FEN updates that do not
+  // generate observable class or child-list mutations in Chess.com's UI.
+  setInterval(() => {
+    if (supportedChessPage() && !document.hidden) syncBoard();
+  }, 850);
 })();
