@@ -65,9 +65,9 @@ struct ContentView: View {
                     header
                     searchBar
                     mapPanel
-                        .frame(height: max(geometry.size.height * 0.43, 270))
+                        .frame(height: min(max(geometry.size.height * 0.47, 300), 430))
+                        .frame(maxWidth: .infinity)
                     controlPanel
-                    Spacer(minLength: 0)
                     footer
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -75,6 +75,7 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea(edges: .horizontal)
         }
+        .preferredColorScheme(.dark)
         .sheet(isPresented: $showingSaved) {
             savedSheet
                 .presentationDetents([.medium, .large])
@@ -83,42 +84,47 @@ struct ContentView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             Image(systemName: "location.fill")
-                .font(.system(size: 21, weight: .bold))
+                .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(.cyan)
-                .frame(width: 44, height: 44)
-                .background(.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
-            VStack(alignment: .leading, spacing: 2) {
-                Text("GeoSwitch").font(.title2.bold())
-                Text("LOCATION TEST LAB").font(.system(size: 10, weight: .bold, design: .rounded)).tracking(1.6).foregroundStyle(.secondary)
+                .frame(width: 52, height: 52)
+                .background(.cyan.opacity(0.14), in: RoundedRectangle(cornerRadius: 16))
+            VStack(alignment: .leading, spacing: 3) {
+                Text("GeoSwitch").font(.system(size: 27, weight: .bold, design: .rounded))
+                Text("LOCATION TEST LAB").font(.system(size: 11, weight: .bold, design: .rounded)).tracking(1.8).foregroundStyle(.secondary)
             }
-            Spacer()
+            Spacer(minLength: 8)
             Button { showingSaved = true } label: {
-                Image(systemName: "bookmark").font(.system(size: 18, weight: .semibold))
-                    .frame(width: 44, height: 44)
-                    .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+                Image(systemName: "bookmark")
+                    .font(.system(size: 20, weight: .semibold))
+                    .frame(width: 50, height: 50)
+                    .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
             }
             .tint(.white)
+            .accessibilityLabel("Saved locations")
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 8)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 14)
     }
 
     private var searchBar: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+        VStack(spacing: 7) {
+            HStack(spacing: 11) {
+                Image(systemName: "magnifyingglass").font(.system(size: 18, weight: .semibold)).foregroundStyle(.secondary)
                 TextField("Search a city or address", text: $searchText)
+                    .font(.system(size: 16))
                     .submitLabel(.search)
                     .onSubmit { searchPlaces() }
                     .tint(.cyan)
-                Button("Go") { searchPlaces() }.fontWeight(.semibold).tint(.cyan)
+                Button("Search") { searchPlaces() }
+                    .font(.system(size: 15, weight: .bold))
+                    .tint(.cyan)
             }
-            .padding(.horizontal, 15)
-            .frame(height: 50)
-            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 15))
+            .padding(.horizontal, 16)
+            .frame(height: 56)
+            .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 17))
             if !searchResults.isEmpty {
                 VStack(spacing: 0) {
                     ForEach(searchResults.indices.prefix(4), id: \.self) { index in
@@ -134,15 +140,15 @@ struct ContentView: View {
                                 Text(item.name ?? "Place").foregroundStyle(.white)
                                 Spacer()
                                 Image(systemName: "arrow.up.left").foregroundStyle(.secondary)
-                            }.padding(12)
+                            }.padding(13)
                         }
                     }
                 }
-                .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 14))
             }
         }
         .padding(.horizontal, 14)
-        .padding(.bottom, 12)
+        .padding(.bottom, 13)
     }
 
     private var mapPanel: some View {
@@ -150,7 +156,7 @@ struct ContentView: View {
             Map(position: $model.camera) {
                 Annotation(model.placeName, coordinate: model.coordinate, anchor: .bottom) {
                     Image(systemName: "mappin.and.ellipse")
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.system(size: 38, weight: .bold))
                         .foregroundStyle(.cyan)
                         .shadow(color: .black.opacity(0.5), radius: 5)
                 }
@@ -164,100 +170,102 @@ struct ContentView: View {
             }
             .overlay(alignment: .topLeading) {
                 Label("TAP MAP TO MOVE PIN", systemImage: "hand.tap")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .tracking(0.8)
-                    .padding(.horizontal, 11).padding(.vertical, 8)
-                    .background(.black.opacity(0.68), in: Capsule())
-                    .padding(12)
+                    .padding(.horizontal, 13).padding(.vertical, 9)
+                    .background(.black.opacity(0.72), in: Capsule())
+                    .padding(13)
             }
             .clipShape(RoundedRectangle(cornerRadius: 0))
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .bottom) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(model.placeName).font(.subheadline.bold()).lineLimit(1)
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(model.placeName).font(.system(size: 16, weight: .bold)).lineLimit(1)
                     Text(String(format: "%.5f, %.5f", model.coordinate.latitude, model.coordinate.longitude))
-                        .font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
+                        .font(.system(size: 12, design: .monospaced)).foregroundStyle(.white.opacity(0.75))
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 Button { model.addSavedPlace() } label: {
-                    Image(systemName: "bookmark.fill").foregroundStyle(.cyan)
-                        .frame(width: 40, height: 40).background(.black.opacity(0.65), in: Circle())
+                    Image(systemName: "bookmark.fill").font(.system(size: 17, weight: .bold)).foregroundStyle(.cyan)
+                        .frame(width: 46, height: 46).background(.black.opacity(0.72), in: Circle())
                 }
+                .accessibilityLabel("Save this location")
             }
-            .padding(12)
-            .background(.black.opacity(0.72))
+            .padding(14)
+            .background(.black.opacity(0.78))
         }
     }
 
     private var controlPanel: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 13) {
             HStack {
-                Text("COORDINATES").font(.system(size: 11, weight: .bold)).tracking(1.2).foregroundStyle(.secondary)
+                Text("COORDINATES").font(.system(size: 12, weight: .bold)).tracking(1.2).foregroundStyle(.secondary)
                 Spacer()
-                Text("WGS84").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(.cyan)
+                Text("WGS84").font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(.cyan)
             }
             HStack(spacing: 10) {
                 coordinateField(title: "LATITUDE", text: $model.latitudeText)
                 coordinateField(title: "LONGITUDE", text: $model.longitudeText)
                 Button { model.applyCoordinates() } label: {
-                    Image(systemName: "arrow.down.to.line")
-                        .font(.system(size: 17, weight: .bold))
-                        .frame(width: 52, height: 54)
-                        .background(.cyan, in: RoundedRectangle(cornerRadius: 13))
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 19, weight: .bold))
+                        .frame(width: 54, height: 58)
+                        .background(.cyan, in: RoundedRectangle(cornerRadius: 15))
                         .foregroundStyle(.black)
                 }
+                .accessibilityLabel("Apply coordinates")
             }
             Button {
                 model.isPreviewing.toggle()
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: 11) {
                     Image(systemName: model.isPreviewing ? "stop.fill" : "play.fill")
                     Text(model.isPreviewing ? "STOP LOCAL PREVIEW" : "START LOCAL PREVIEW")
                     Spacer()
                     Text(model.isPreviewing ? "ACTIVE" : "READY")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .padding(.horizontal, 9).padding(.vertical, 5)
+                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                        .padding(.horizontal, 10).padding(.vertical, 6)
                         .background(.black.opacity(0.15), in: Capsule())
                 }
-                .font(.system(size: 13, weight: .heavy))
-                .padding(.horizontal, 17).frame(maxWidth: .infinity).frame(height: 54)
-                .background(model.isPreviewing ? Color.orange : Color.cyan, in: RoundedRectangle(cornerRadius: 15))
+                .font(.system(size: 14, weight: .heavy))
+                .padding(.horizontal, 18).frame(maxWidth: .infinity).frame(height: 58)
+                .background(model.isPreviewing ? Color.orange : Color.cyan, in: RoundedRectangle(cornerRadius: 17))
                 .foregroundStyle(.black)
             }
-            Text("Preview only: iOS does not let a regular app replace GPS for other apps. Use Xcode location simulation to test apps you develop.")
-                .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("Preview only — this does not change the GPS location reported to Snapchat or other apps.")
+                .font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
+        .padding(.top, 17)
+        .padding(.bottom, 10)
     }
 
     private func coordinateField(title: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title).font(.system(size: 9, weight: .bold)).tracking(0.8).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.system(size: 10, weight: .bold)).tracking(0.8).foregroundStyle(.secondary)
             TextField("0.000000", text: text)
                 .keyboardType(.numbersAndPunctuation)
-                .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                .font(.system(size: 15, weight: .semibold, design: .monospaced))
                 .tint(.cyan)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 13)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: 54)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 13))
+        .frame(height: 58)
+        .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 15))
     }
 
     private var footer: some View {
         HStack {
-            Label("iOS TESTING MODE", systemImage: "iphone")
+            Label("LOCATION PREVIEW", systemImage: "iphone")
             Spacer()
-            Text("v1.0.0")
+            Text("v1.1.0")
         }
-        .font(.system(size: 9, weight: .bold, design: .monospaced))
+        .font(.system(size: 10, weight: .bold, design: .monospaced))
         .foregroundStyle(.secondary)
         .padding(.horizontal, 18)
-        .padding(.vertical, 12)
+        .padding(.vertical, 9)
     }
 
     private var savedSheet: some View {
