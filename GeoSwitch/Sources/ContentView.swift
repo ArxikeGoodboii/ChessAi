@@ -121,7 +121,8 @@ struct ContentView: View {
             .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 15))
             if !searchResults.isEmpty {
                 VStack(spacing: 0) {
-                    ForEach(searchResults.prefix(4), id: \.self) { item in
+                    ForEach(searchResults.indices.prefix(4), id: \.self) { index in
+                        let item = searchResults[index]
                         Button {
                             if let point = item.placemark.location?.coordinate {
                                 model.setCoordinate(point, name: item.name ?? "Selected place")
