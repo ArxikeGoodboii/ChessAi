@@ -1,0 +1,21 @@
+name: GeoSwitch
+options:
+  bundleIdPrefix: com.arxike
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  GeoSwitch:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.arxike.geoswitch
+        PRODUCT_NAME: GeoSwitch
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: GeoSwitch
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "GeoSwitch uses your location to show your current position on the map."
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
