@@ -1,0 +1,57 @@
+name: Build GeoSwitch iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "GeoSwitch/**"
+      - ".github/workflows/build-geoswitch-ipa.yml"
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: GeoSwitch
+        run: xcodegen generate
+
+      - name: Build unsigned iOS app
+        working-directory: GeoSwitch
+        run: |
+          xcodebuild \
+            -project GeoSwitch.xcodeproj \
+            -scheme GeoSwitch \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package unsigned IPA
+        working-directory: GeoSwitch
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Release-iphoneos/GeoSwitch.app"
+          test -d "$APP_PATH"
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/GeoSwitch.app
+          cd build
+          /usr/bin/zip -qry GeoSwitch-unsigned.ipa Payload
+          test -s GeoSwitch-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeoSwitch-unsigned-IPA
+          path: GeoSwitch/build/GeoSwitch-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
